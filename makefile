@@ -1,4 +1,4 @@
-file := main.exe
+file := main
 
 src_files := ./src/main.c ./src/drawing.c ./src/movement.c
 
