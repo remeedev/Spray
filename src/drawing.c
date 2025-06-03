@@ -1,10 +1,14 @@
 #include <windows.h>
 #include <stdio.h>
+#include "headers/images.h"
+#include <string.h>
+#include <wingdi.h>
 
 typedef struct BrushPalette {
     HBRUSH brush;
     COLORREF color;
     char *name;
+    HBITMAP bmp;
     struct BrushPalette *next;
 } BrushPalette;
 
@@ -54,6 +58,39 @@ BrushPalette *CreateNewColorBrush(COLORREF color){
     }
 }
 
+BrushPalette* SearchBrushesName(char *str){
+    if (brushes == NULL)return NULL;
+    BrushPalette *curr = brushes;
+    int found = FALSE;
+    while (curr != NULL && !found){
+        if (strcmp(curr->name, str)) {
+            found = TRUE;
+        }else{
+            curr = curr->next;
+        }
+    }
+    return curr;
+}
+
+BrushPalette * LoadImageAsBrush(char *name){
+    if (SearchBrushesName(name) != NULL){
+        return SearchBrushesName(name);
+    }
+    BrushPalette *holder = (BrushPalette *)malloc(sizeof(BrushPalette));
+    holder->brush = NULL;
+    holder->color = (COLORREF)NULL;
+    holder->name = name;
+    holder->bmp = LoadPNGAsBmp(name);
+    holder->next = NULL;
+    if (brushes == NULL){
+        brushes = holder;
+    }else{
+        BrushPalette *curr = brushes;
+        while (curr->next != NULL)curr = curr->next;
+        curr->next = holder;
+    }
+}
+
 void LoadBrushes(){
     CreateNewColorBrush(RGB(255, 0, 0));
     CreateNewColorBrush(RGB(0, 255, 0));
@@ -63,7 +100,8 @@ void LoadBrushes(){
 void deleteBrushes(){
     BrushPalette *curr = brushes;
     while (curr != NULL){
-        DeleteObject(curr->brush);
+        if (curr->brush) DeleteObject(curr->brush);
+        if (curr->bmp) DeleteObject(curr->bmp);
         BrushPalette *prev = curr;
         curr = curr->next;
         free(prev);
@@ -78,6 +116,18 @@ void EraseSprite(Sprite *sprite){
 void CreateSprite(Sprite* sprite, int x, int y, int cx, int cy, COLORREF color){
     // Create the brush material
     sprite->brush = CreateNewColorBrush(color);
+    POINT pos;
+    pos.x = x;
+    pos.y = y;
+    SIZE size;
+    size.cx = cx;
+    size.cy = cy;
+    sprite->pos = pos;
+    sprite->size = size;
+}
+
+void CreateImgSprite(Sprite* sprite, int x, int y, int cx, int cy, char *name){
+    sprite->brush = LoadImageAsBrush(name);
     POINT pos;
     pos.x = x;
     pos.y = y;
@@ -128,7 +178,6 @@ void DeleteSpriteGroup(SpriteGroup *group){
         curr_elem = curr_elem->next;
         free(prev);
     }
-    free(group);
 }
 
 // Basic code for map boundaries
@@ -196,7 +245,7 @@ SpriteGroup *CreateStairsWithCoords(int x1, int y1, int x2, int y2){
 void InitPlayer(){
     if (player == NULL){
         player = (Sprite *)malloc(sizeof(Sprite));
-        CreateSprite(player, 0, 0, 64, 64, RGB(255, 0, 0));
+        CreateImgSprite(player, 0, 0, 64, 64, "./assets/sub.png");
     }
 }
 
@@ -227,7 +276,25 @@ void PaintSprite(HDC hdc, Sprite* sprite){
     spriteInfo.right = sprite->pos.x + sprite->size.cx;
     spriteInfo.top = sprite->pos.y;
     spriteInfo.bottom = sprite->pos.y + sprite->size.cy;
-    FillRect(hdc, &spriteInfo, sprite->brush->brush);
+    if (sprite->brush->brush) {
+        FillRect(hdc, &spriteInfo, sprite->brush->brush);
+    }else{
+        HDC hdcMem = CreateCompatibleDC(hdc);
+        if (hdcMem){
+            HBITMAP hbmOld = SelectObject(hdcMem, sprite->brush->bmp);
+            BITMAP bm;
+            GetObject(sprite->brush->bmp, sizeof(bm), &bm);
+            BLENDFUNCTION bf = {0};
+            bf.BlendOp = AC_SRC_OVER;
+            bf.BlendFlags = 0;
+            bf.SourceConstantAlpha = 255; // 0-255: use 255 for full alpha support from the bitmap
+            bf.AlphaFormat = AC_SRC_ALPHA; // Important: uses per-pixel alpha!
+            AlphaBlend(hdc, sprite->pos.x, sprite->pos.y, sprite->size.cx, sprite->size.cy, hdcMem, 0, 0, sprite->size.cx, sprite->size.cy, bf);
+            // BitBlt(hdc, sprite->pos.x, sprite->pos.y, sprite->size.cx, sprite->size.cy, hdcMem, 0, 0, SRCCOPY);
+            SelectObject(hdcMem, hbmOld);
+            DeleteDC(hdcMem);
+        }
+    }
 }
 
 void PaintSpriteGroup(HDC hdc, SpriteGroup* group){
