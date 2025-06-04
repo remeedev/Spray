@@ -150,6 +150,7 @@ POINT get_transform_due(SpriteGroup* collisions){ // Function takes the collisio
         if (shares_border && total > 0){
             jump_direction = shares_border_right ? -1 : 1;
             can_jump = TRUE;
+            lock_input = FALSE;
         }
         if (points.bot_left.y >= collision_points.top_left.y-2 && points.bot_left.y <= collision_points.top_left.y+2 && (br || bl)){
             grounded = TRUE;

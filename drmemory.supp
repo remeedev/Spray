@@ -1,4 +1,0 @@
-LEAK
-name=mingw common error
-...
-ntdll.dll!__RtlUserThreadStart

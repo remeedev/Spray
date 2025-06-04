@@ -12,8 +12,10 @@
 #include <windows.h>
 #include <zlib.h>
 #include <string.h>
+#include "headers/log.h"
 
 void PrintBytes(unsigned char *bytes, size_t len){
+    printf("\n");
     for (int i = 0; i < len; i++){
         printf("%d ", bytes[i]);
         if (i%8 == 0 && i != 0){
@@ -30,7 +32,7 @@ int CompareBytes(unsigned char *bytes, unsigned char *target, size_t len){
     return TRUE;
 }
 
-int b2i(char *bytes, size_t size){
+int b2i(unsigned char *bytes, size_t size){
     int out = 0;
     for (int i = 0; i < size; i++){
         out |= bytes[i]<<8*(size-i-1);
@@ -154,7 +156,7 @@ unsigned char * SubFix(unsigned char * bytes, size_t len, size_t BytesPerPixel){
     }
     for (size_t i = 0; i < len; i++){
         if (i >= BytesPerPixel){
-            destBytes[i] = bytes[i] + destBytes[i-BytesPerPixel];
+            destBytes[i] = bytes[i] + destBytes[i-BytesPerPixel] % 256;
         }else{
             destBytes[i] = bytes[i];
         }
@@ -179,20 +181,21 @@ unsigned char * UncompressPNG(unsigned char*ImageData, size_t width, size_t heig
     int curr_pos = 0;
     // PrintBytes(raw_data, out_size);
     unsigned char processed_data[width*4];
-    unsigned char *color_data = (unsigned char *)malloc(width*height*4);
+    memset(processed_data, 0, width*4);
+    unsigned char *color_data = (unsigned char *)malloc(width*height*BytesPerPixel);
     int curr_color = 0;
     if (color_data == NULL){
         printf("Unable to allocate space for color data\n");
         return NULL;
     }
     for (int y = 0; y < height; y++){
+        memset(processed_data, 0, width*4);
         int filter = raw_data[curr_pos++];
         for (int x = 1; x < width*4+1; x++){
-            processed_data[x] = raw_data[curr_pos++];
+            processed_data[x-1] = raw_data[curr_pos++];
         }
         if (filter == 1){
             unsigned char * clean_row = SubFix(processed_data, width*4, BytesPerPixel);
-            // PrintBytes(clean_row, width*4);
             for (size_t i = 0; i < width*4; i++){
                 color_data[curr_color++] = clean_row[i];
             }
@@ -213,16 +216,10 @@ HBITMAP ConvertBytesBMP(unsigned char *Bytes, size_t len, int width, int height,
             r = ColorInfo[i-BytesPerPixel+1];
             g = ColorInfo[i-BytesPerPixel+2];
             b = ColorInfo[i-BytesPerPixel+3];
-            // ColorInfo[i-1] = r;
-            // ColorInfo[i-3] = b;
-            // ColorInfo[i-1] = (ColorInfo[i-1]*Bytes[i])/255;
-            // ColorInfo[i-2] = (ColorInfo[i-2]*Bytes[i])/255;
-            // ColorInfo[i-3] = (ColorInfo[i-3]*Bytes[i])/255;
-            if (abs((float)(r+g+b)/3.0) < 3){
-                ColorInfo[i] = (unsigned char)0;
-            }else{
-                ColorInfo[i] = (unsigned char)255;
-            }
+            
+            // INVERTING BLUE & RED
+            ColorInfo[i-BytesPerPixel+1] = b;
+            ColorInfo[i-BytesPerPixel+3] = r;
         }
     }
 
@@ -250,10 +247,32 @@ HBITMAP ConvertBytesBMP(unsigned char *Bytes, size_t len, int width, int height,
 
 HBITMAP LoadPNGAsBmp(char *file_name){
     size_t width, height, bpp, ilen, clen;
-    char *ImageData = ReadPNG(file_name, &width, &height, &bpp, &ilen);
-    char *CleanData = UncompressPNG(ImageData, width, height, bpp, ilen, &clen);
+    unsigned char *ImageData = ReadPNG(file_name, &width, &height, &bpp, &ilen);
+    unsigned char *CleanData = UncompressPNG(ImageData, width, height, bpp, ilen, &clen);
     free(ImageData); // Don't need it no more
     HBITMAP bmp = ConvertBytesBMP(CleanData, clen, width, height, bpp);
     free(CleanData);
     return bmp;
 }
+
+// int main(int argc, char *argv[]){
+//     FILE *debugFile = (FILE *)fopen("debug.txt", "w");
+//     if (debugFile == NULL){
+//         printf("Not able to create debug file!\n");
+//         return 0;
+//     }
+    
+//     size_t width, height, bpp, ilen, clen;
+//     unsigned char *ImageData = ReadPNG("assets/simple_example.png", &width, &height, &bpp, &ilen);
+//     unsigned char *CleanData = UncompressPNG(ImageData, width, height, bpp, ilen, &clen);
+//     free(ImageData);
+//     if(fwrite(CleanData, 1, clen, debugFile) != clen){
+//         printf("Unable to write to file!\n");
+//         fclose(debugFile);
+//         free(CleanData);
+//         return 0;
+//     }
+//     fclose(debugFile);
+//     free(CleanData);
+//     return 0;
+// }

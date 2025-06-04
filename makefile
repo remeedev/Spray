@@ -1,6 +1,6 @@
 file := main.exe
 
-src_files := ./src/main.c ./src/drawing.c ./src/movement.c ./src/images.c
+src_files := ./src/main.c ./src/drawing.c ./src/movement.c ./src/images.c ./src/log.c
 
 FLAGS := -lgdi32 -lz -lmsimg32
 
@@ -9,10 +9,3 @@ revised:
 
 run: revised
 	$(file)
-
-exam: revised
-	drmemory -suppress drmemory.supp -- $(file)
-
-images:
-	gcc -o images.exe ./src/images.c $(FLAGS)
-	images.exe
