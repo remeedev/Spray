@@ -1,13 +1,18 @@
 #include <windows.h>
 #include <wingdi.h>
+#include "animations.h"
 
 #ifndef moving
 #define moving
 
+// Basic structures and typedefs
+
 typedef struct BrushPalette {
+    unsigned int type; // 0 Color 1 Animation
     HBRUSH brush;
     COLORREF color;
     char *name;
+    AnimationGroup *anim_group;
     struct BrushPalette *next;
 } BrushPalette;
 
@@ -22,45 +27,43 @@ typedef struct SpriteGroup {
     struct SpriteGroup* next;
 } SpriteGroup;
 
-void CreateSprite(Sprite *sprite, int x, int y, int cx, int cy, COLORREF color);
+// DIRECT BRUSH FUNCTIONS HIDDEN
+void LoadBrushes(); // Only two functions
+void deleteBrushes();
 
-Sprite *GetPlayerPtr();
+// SPRITE FUNCTIONS
 
-POINT GetPlayerPos();
+// SPRITE CREATION
+void CreateSprite(Sprite* sprite, int x, int y, int cx, int cy, COLORREF color);
+void CreateImgSprite(Sprite* sprite, int x, int y, int cx, int cy, char *name);
+void CreateAnimatedSprite(Sprite* sprite, int x, int y, int cx, int cy, char *name, char *animation_name, int fps);
 
-SIZE GetPlayerSize();
+void EraseSprite(Sprite *sprite);
 
-void EndPlayer();
-
-void SetPlayerPos(POINT new_pos);
-
-void PaintSprite(HDC hdc, Sprite *sprite);
-
-void EraseSprite(Sprite sprite);
-
+// SPRITE GROUPS
 void AddSpriteToGroup(SpriteGroup *group, Sprite *sprite);
-
 void CreateSpriteInGroup(SpriteGroup *group, int x, int y, int cx, int cy, COLORREF color);
-
 SpriteGroup *CreateSpriteGroup(int x, int y, int cx, int cy, COLORREF color);
-
 void DeleteSpriteGroup(SpriteGroup *group);
-
-void PaintSpriteGroup(HDC hdc, SpriteGroup* group);
-
-void InitPlayer();
-
-SpriteGroup *CreateStairCase(POINT start_point, POINT end_point);
-
-SpriteGroup *CreateStairsWithCoords(int x1, int y1, int x2, int y2);
-
 void AppendToGroup(SpriteGroup *base_group, SpriteGroup *target);
 
+// MAP BOUNDARIES
 SpriteGroup *CreateMapBoundaries(int floor_level, int screen_width, int screen_height);
 void UpdateMapBoundaries(SpriteGroup *boundaries, int screen_width, int screen_height);
 
-void deleteBrushes();
+// STAIRS
+SpriteGroup *CreateStairCase(POINT start_point, POINT end_point);
+SpriteGroup *CreateStairsWithCoords(int x1, int y1, int x2, int y2);
 
-void LoadBrushes();
+// PLAYER FUNCTIONS
+void InitPlayer();
+Sprite *GetPlayerPtr();
+POINT GetPlayerPos();
+SIZE GetPlayerSize();
+void EndPlayer();
+void SetPlayerPos(POINT new_pos);
 
+// PAINTING FUNCTIONS
+void PaintSprite(HDC hdc, Sprite* sprite);
+void PaintSpriteGroup(HDC hdc, SpriteGroup* group);
 #endif

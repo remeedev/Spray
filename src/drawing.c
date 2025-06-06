@@ -1,14 +1,26 @@
+/*
+DRAWING.C
+Handles brushes/images/spritesheets
+Handles Sprites and Spritegroups
+Has the handle to the main player
+*/
+
 #include <windows.h>
 #include <stdio.h>
-#include "headers/images.h"
 #include <string.h>
 #include <wingdi.h>
 
+#include "headers/images.h"
+#include "headers/animations.h"
+
+// Basic structures and typedefs
+
 typedef struct BrushPalette {
+    unsigned int type; // 0 Color 1 Animation
     HBRUSH brush;
     COLORREF color;
     char *name;
-    HBITMAP bmp;
+    AnimationGroup *anim_group;
     struct BrushPalette *next;
 } BrushPalette;
 
@@ -23,6 +35,7 @@ typedef struct SpriteGroup {
     struct SpriteGroup* next;
 } SpriteGroup;
 
+// ======== BRUSH MEMORY SECTION =============
 BrushPalette *brushes = NULL;
 
 BrushPalette* SearchBrushesColor(COLORREF color){
@@ -30,7 +43,7 @@ BrushPalette* SearchBrushesColor(COLORREF color){
     BrushPalette *curr = brushes;
     int found = FALSE;
     while (curr != NULL && !found){
-        if (curr->color == color) {
+        if (curr->color == color && curr->type == 0) {
             found = TRUE;
         }else{
             curr = curr->next;
@@ -45,8 +58,14 @@ BrushPalette *CreateNewColorBrush(COLORREF color){
     }
     HBRUSH brush = CreateSolidBrush(color);
     BrushPalette *holder = (BrushPalette *)malloc(sizeof(BrushPalette));
+    if (holder == NULL){
+        printf("Unable to create Brush Palette!\n");
+        return NULL;
+    }
     holder->brush = brush;
+    holder->type = 0;
     holder->color = color;
+    holder->anim_group = NULL;
     holder->name = "";
     holder->next = NULL;
     if (brushes == NULL){
@@ -63,7 +82,7 @@ BrushPalette* SearchBrushesName(char *str){
     BrushPalette *curr = brushes;
     int found = FALSE;
     while (curr != NULL && !found){
-        if (strcmp(curr->name, str)) {
+        if (strcmp(curr->name, str)==0 && curr->type == 0) {
             found = TRUE;
         }else{
             curr = curr->next;
@@ -72,23 +91,31 @@ BrushPalette* SearchBrushesName(char *str){
     return curr;
 }
 
-BrushPalette * LoadImageAsBrush(char *name){
-    if (SearchBrushesName(name) != NULL){
-        return SearchBrushesName(name);
+BrushPalette *LoadAnimationAsBrush(char *name, char *animation_name, size_t width, size_t height, int fps){
+    BrushPalette *out = (BrushPalette *)malloc(sizeof(BrushPalette));
+    if (out == NULL){
+        printf("Unable to create Brush Palette from animation!\n");
+        return NULL;
     }
-    BrushPalette *holder = (BrushPalette *)malloc(sizeof(BrushPalette));
-    holder->brush = NULL;
-    holder->color = (COLORREF)NULL;
-    holder->name = name;
-    holder->bmp = LoadPNGAsBmp(name);
-    holder->next = NULL;
+    AnimationGroup *anim_group = LoadPNGIntoSprite(name, animation_name, width, height, fps);
+    if (anim_group == NULL){
+        printf("Unable to create animation group!\n");
+        free(out);
+        return NULL;
+    }
+    out->anim_group = anim_group;
+    out->color = (COLORREF)NULL;
+    out->name = name;
+    out->type = 1;
+    out->next = NULL;
     if (brushes == NULL){
-        brushes = holder;
+        brushes = out;
     }else{
         BrushPalette *curr = brushes;
         while (curr->next != NULL)curr = curr->next;
-        curr->next = holder;
+        curr->next = out;
     }
+    return out;
 }
 
 void LoadBrushes(){
@@ -100,20 +127,22 @@ void LoadBrushes(){
 void deleteBrushes(){
     BrushPalette *curr = brushes;
     while (curr != NULL){
-        if (curr->brush) DeleteObject(curr->brush);
-        if (curr->bmp) DeleteObject(curr->bmp);
+        if (curr->brush == 0) DeleteObject(curr->brush);
+        if (curr->anim_group) DeleteAnimationGroup(curr->anim_group);
         BrushPalette *prev = curr;
         curr = curr->next;
         free(prev);
     }
 }
 
-void EraseSprite(Sprite *sprite){
+// ======== BRUSH MEMORY SECTION END =============
+
+// ======== Sprites ===================
+void EraseSprite(Sprite *sprite){ // Deletes sprites
     free(sprite);
 }
 
-// Function to create sprites
-void CreateSprite(Sprite* sprite, int x, int y, int cx, int cy, COLORREF color){
+void CreateSprite(Sprite* sprite, int x, int y, int cx, int cy, COLORREF color){ // Creates simple color sprite
     // Create the brush material
     sprite->brush = CreateNewColorBrush(color);
     POINT pos;
@@ -126,8 +155,8 @@ void CreateSprite(Sprite* sprite, int x, int y, int cx, int cy, COLORREF color){
     sprite->size = size;
 }
 
-void CreateImgSprite(Sprite* sprite, int x, int y, int cx, int cy, char *name){
-    sprite->brush = LoadImageAsBrush(name);
+void CreateImgSprite(Sprite* sprite, int x, int y, int cx, int cy, char *name){ // Create strictly single image sprite
+    sprite->brush = LoadAnimationAsBrush(name, "basic", (size_t)cx, (size_t)cy, 0);
     POINT pos;
     pos.x = x;
     pos.y = y;
@@ -138,8 +167,17 @@ void CreateImgSprite(Sprite* sprite, int x, int y, int cx, int cy, char *name){
     sprite->size = size;
 }
 
-// Creating the main sprite
-Sprite *player = NULL;
+void CreateAnimatedSprite(Sprite* sprite, int x, int y, int cx, int cy, char *name, char *animation_name, int fps){ // Creates animating sprite from spritesheet
+    sprite->brush = LoadAnimationAsBrush(name, animation_name, (size_t)cx, (size_t)cy, fps);
+    POINT pos;
+    pos.x = x;
+    pos.y = y;
+    SIZE size;
+    size.cx = cx;
+    size.cy = cy;
+    sprite->pos = pos;
+    sprite->size = size;
+}
 
 // ====================== Sprite Group Logic =======================
 
@@ -180,6 +218,15 @@ void DeleteSpriteGroup(SpriteGroup *group){
     }
 }
 
+void AppendToGroup(SpriteGroup *base_group, SpriteGroup *target){
+    SpriteGroup *curr_elem = base_group;
+    while (curr_elem->next != NULL) curr_elem = curr_elem->next;
+    curr_elem->next = target;
+}
+
+// ==================== Sprite Group Logic End =====================
+
+// MAP BOUNDARIES
 // Basic code for map boundaries
 SpriteGroup *CreateMapBoundaries(int floor_level, int screen_width, int screen_height){
     SpriteGroup *collisions = CreateSpriteGroup(0, screen_height-floor_level, screen_width, floor_level, RGB(0, 255, 0));
@@ -201,13 +248,9 @@ void UpdateMapBoundaries(SpriteGroup *boundaries, int screen_width, int screen_h
     curr_elem = curr_elem->next; // Roof
     curr_elem->sprite->size.cx = screen_width;
 }
+// MAP BOUNDARIES END
 
-void AppendToGroup(SpriteGroup *base_group, SpriteGroup *target){
-    SpriteGroup *curr_elem = base_group;
-    while (curr_elem->next != NULL) curr_elem = curr_elem->next;
-    curr_elem->next = target;
-}
-
+// $$$$$$$$$$$$$$$$$$$ STAIRS $$$$$$$$$$$$$$$$$$$$$$
 int max_step_height = 45;
 
 SpriteGroup *CreateStairCase(POINT start_point, POINT end_point){ // Because why not
@@ -240,12 +283,19 @@ SpriteGroup *CreateStairsWithCoords(int x1, int y1, int x2, int y2){
     return CreateStairCase(p1, p2);
 }
 
-// ==================== Sprite Group Logic End =====================
+// $$$$$$$$$$$$$$$$$$$ STAIRS NO MORE $$$$$$$$$$$$$$$$$$$$$$
+
+// =================== MAIN SPRITE CODE ====================
+// Creating the main sprite
+Sprite *player = NULL;
 
 void InitPlayer(){
     if (player == NULL){
         player = (Sprite *)malloc(sizeof(Sprite));
-        CreateImgSprite(player, 0, 0, 64, 64, "./assets/sub.png");
+        CreateAnimatedSprite(player, 0, 0, 48*2, 64*2, "./assets/walking_right.png", "walking_right", 5);
+        AddToAnimationGroup(player->brush->anim_group, "./assets/walking_left.png", "walking_left", 48*2, 64*2, 5 );
+        AddToAnimationGroup(player->brush->anim_group, "./assets/still_right.png", "still_right", 48*2, 64*2, 0 );
+        AddToAnimationGroup(player->brush->anim_group, "./assets/still_left.png", "still_left", 48*2, 64*2, 0 );
     }
 }
 
@@ -270,30 +320,19 @@ void SetPlayerPos(POINT new_pos){
     player->pos = new_pos;
 }
 
+// =================== MAIN SPRITE CODE END ====================
+
+// =================== GRAPHICS LOGIC =======================
 void PaintSprite(HDC hdc, Sprite* sprite){
     RECT spriteInfo;
     spriteInfo.left = sprite->pos.x;
     spriteInfo.right = sprite->pos.x + sprite->size.cx;
     spriteInfo.top = sprite->pos.y;
     spriteInfo.bottom = sprite->pos.y + sprite->size.cy;
-    if (sprite->brush->brush) {
+    if (sprite->brush->type == 0) {
         FillRect(hdc, &spriteInfo, sprite->brush->brush);
     }else{
-        HDC hdcMem = CreateCompatibleDC(hdc);
-        if (hdcMem){
-            HBITMAP hbmOld = SelectObject(hdcMem, sprite->brush->bmp);
-            BITMAP bm;
-            GetObject(sprite->brush->bmp, sizeof(bm), &bm);
-            BLENDFUNCTION bf = {0};
-            bf.BlendOp = AC_SRC_OVER;
-            bf.BlendFlags = 0;
-            bf.SourceConstantAlpha = 255; // 0-255: use 255 for full alpha support from the bitmap
-            bf.AlphaFormat = AC_SRC_ALPHA; // Important: uses per-pixel alpha!
-            AlphaBlend(hdc, sprite->pos.x, sprite->pos.y, sprite->size.cx, sprite->size.cy, hdcMem, 0, 0, sprite->size.cx, sprite->size.cy, bf);
-            // BitBlt(hdc, sprite->pos.x, sprite->pos.y, sprite->size.cx, sprite->size.cy, hdcMem, 0, 0, SRCCOPY);
-            SelectObject(hdcMem, hbmOld);
-            DeleteDC(hdcMem);
-        }
+        DrawAnimatedSprite(hdc, sprite->brush->anim_group, sprite->pos.x, sprite->pos.y);
     }
 }
 
@@ -304,3 +343,4 @@ void PaintSpriteGroup(HDC hdc, SpriteGroup* group){
         curr_elem = curr_elem->next;
     }
 }
+// =================== GRAPHICS LOGIC END =======================

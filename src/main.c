@@ -58,19 +58,13 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) {
             p1.x = -1;
             p2.x = -1;
             // ================
-            printf("Creating screen...\n");
             // Screen buffering fix
-            printf("Creating character...\n");
             InitPlayer();
-            printf("Loading brushes!\n");
             LoadBrushes();
-            printf("Creating map boundaries!\n");
             collisions = CreateMapBoundaries(100, screen_width, screen_height);
-            printf("Loading level assets!\n");
             AppendToGroup(collisions, CreateStairsWithCoords(100, screen_height-100, 400, 400));
             CreateSpriteInGroup(collisions, screen_width-500, 300, 100, 200, RGB(0, 0, 255));
             CreateSpriteInGroup(collisions, screen_width-100, 300, 100, screen_height-600, RGB(0, 0, 255));
-            printf("Setting double buffer...\n");
             HDC hdc = GetDC(hWnd);
             hdcMem = CreateCompatibleDC(hdc);
             hbmMem = CreateCompatibleBitmap(hdc, screen_width, screen_height);
@@ -144,7 +138,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow) {
     WNDCLASSEX wc;
 
-    printf("Registering classes...\n");
     wc.cbSize = sizeof(WNDCLASSEX);
     wc.style = 0;
     wc.lpfnWndProc = WndProc;
@@ -163,7 +156,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
         return 0;
     }
 
-    printf("Creating window...\n");
     HWND hWnd = CreateWindowEx(
         0,
         "WindowClass",

@@ -1,13 +1,3 @@
-//////////////////////////////////////
-//                                  //
-//    This code is not done yet.    //
-//     DO NOT TOUCH THIS CODE       //
-//                                  //
-//                                  //
-//                    - R3mi        //
-//                                  //
-//////////////////////////////////////
-
 #include <stdio.h>
 #include <windows.h>
 #include <zlib.h>
@@ -100,7 +90,6 @@ unsigned char *ReadPNG(char *file_name, size_t *widthOutput, size_t *heightOutpu
     size_t image_size = 0;
     size_t chunk_size;
     while ((chunk_size = ReadNextSection(&section_name, &section_data, file)) > 0){
-        PrintBytes(section_name, 4);
         if (CompareBytes(section_name, "IHDR", 4)){
             width = b2i(section_data, 4);
             char height_bytes[4];
@@ -139,7 +128,6 @@ unsigned char *ReadPNG(char *file_name, size_t *widthOutput, size_t *heightOutpu
         free(section_data);
         free(section_name);
     }
-    printf("[%s] officially read by the system!\n%dx%d\nBytes per pixel: %d\n", file_name, width, height, color_profile);
     *heightOutput = height;
     *widthOutput = width;
     *BytesPerPixel = color_profile;
@@ -177,7 +165,6 @@ unsigned char * UncompressPNG(unsigned char*ImageData, size_t width, size_t heig
         printf("Size of data didn't match expected\n%d Bytes expected\n%d Bytes received after uncompression\n", expected_size, out_size);
         return NULL;
     }
-    printf("%d Bytes were just decompressed!\n", out_size);
     int curr_pos = 0;
     // PrintBytes(raw_data, out_size);
     unsigned char processed_data[width*4];
@@ -240,7 +227,6 @@ HBITMAP ConvertBytesBMP(unsigned char *Bytes, size_t len, int width, int height,
         return NULL;
     }
     memcpy(pBits, ColorInfo, len);
-    printf("Finished creating bitmap!\n");
     free(ColorInfo);
     return bmp;
 }
@@ -254,25 +240,3 @@ HBITMAP LoadPNGAsBmp(char *file_name){
     free(CleanData);
     return bmp;
 }
-
-// int main(int argc, char *argv[]){
-//     FILE *debugFile = (FILE *)fopen("debug.txt", "w");
-//     if (debugFile == NULL){
-//         printf("Not able to create debug file!\n");
-//         return 0;
-//     }
-    
-//     size_t width, height, bpp, ilen, clen;
-//     unsigned char *ImageData = ReadPNG("assets/simple_example.png", &width, &height, &bpp, &ilen);
-//     unsigned char *CleanData = UncompressPNG(ImageData, width, height, bpp, ilen, &clen);
-//     free(ImageData);
-//     if(fwrite(CleanData, 1, clen, debugFile) != clen){
-//         printf("Unable to write to file!\n");
-//         fclose(debugFile);
-//         free(CleanData);
-//         return 0;
-//     }
-//     fclose(debugFile);
-//     free(CleanData);
-//     return 0;
-// }

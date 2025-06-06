@@ -1,6 +1,9 @@
 #include "headers/drawing.h"
+#include "headers/animations.h"
+
 #include <stdio.h>
 
+// VARIABLE DEFINITION
 float player_speed = 1000.0f;
 float jump_force = 1500.0f;
 
@@ -30,9 +33,10 @@ int grounded = FALSE;
 
 int debug = FALSE;
 
+// ======== controls ===========
 void HandleKeyDown(UINT key){
     if (key == 'W') w = 1;
-    if (key == 'A') a = 1;
+    if (key == 'A')a = 1;
     if (key == 'S') s = 1;
     if (key == 'D') d = 1;
     if (key == 'R') {
@@ -64,7 +68,9 @@ void HandleKeyUp(UINT key){
         debug = debug ? FALSE : TRUE;
     }
 }
+// ======== controls end ===========
 
+// ========= Logic Functions ========
 int PointInSprite(POINT point, Sprite sprite){
     return (point.x > sprite.pos.x && point.x < sprite.pos.x + sprite.size.cx && point.y > sprite.pos.y && point.y < sprite.pos.y + sprite.size.cy) ? 1 : 0;
 }
@@ -72,8 +78,9 @@ int PointInSprite(POINT point, Sprite sprite){
 int LightInSprite(POINT point, Sprite sprite){ // Checks for equal (Helps with grounded variable)
     return (point.x >= sprite.pos.x && point.x <= sprite.pos.x + sprite.size.cx && point.y >= sprite.pos.y && point.y <= sprite.pos.y + sprite.size.cy) ? 1 : 0;
 }
+// ========== Logic End ===========
 
-// Helps in the function below
+// Four corners definition
 typedef struct four_points{
     POINT top_right;
     POINT top_left;
@@ -81,6 +88,7 @@ typedef struct four_points{
     POINT bot_left;
 } four_points;
 
+// Setters
 four_points move_points(four_points og, POINT transform){
     og.top_right.x += transform.x;
     og.top_right.y += transform.y;
@@ -93,6 +101,7 @@ four_points move_points(four_points og, POINT transform){
     return og;
 }
 
+// Init funct
 four_points calculate_points(POINT pos, SIZE size){
     four_points out;
     out.top_left.x = pos.x;
@@ -106,6 +115,7 @@ four_points calculate_points(POINT pos, SIZE size){
     return out;
 }
 
+// Approximation move (causes stairs to be a thing)
 int counter = 0;
 four_points equalize_points(four_points in_points, POINT edge, POINT target_edge, int grounded){
     POINT transform;
@@ -116,9 +126,10 @@ four_points equalize_points(four_points in_points, POINT edge, POINT target_edge
         transform.y = 0;
         transform.x = target_edge.x-edge.x;
     }
-    return move_points(in_points, transform); // Retornea nuevos puntos
+    return move_points(in_points, transform); // Returns the new points
 }
 
+// COLLISION DETECTION
 POINT get_transform_due(SpriteGroup* collisions){ // Function takes the collision boxes and processes player go down
     // Gets the four edges of the player, then checks for collisions and returns final position
     four_points points = calculate_points(GetPlayerPos(), GetPlayerSize());
@@ -189,6 +200,7 @@ POINT get_transform_due(SpriteGroup* collisions){ // Function takes the collisio
     return points.top_left;
 }
 
+// Makes sure character is not outside of map
 void UpdatePositionOnResize(int screen_width, int screen_height){
     POINT curr_pos = GetPlayerPos();
     if (curr_pos.x > screen_width-GetPlayerSize().cx){
@@ -200,8 +212,36 @@ void UpdatePositionOnResize(int screen_width, int screen_height){
     SetPlayerPos(curr_pos);
 }
 
+void ChangeAnimationNoDir(char *new_animation_name){
+    char *anim_name = GetCurrentAnimationName(GetPlayerPtr()->brush->anim_group);
+    if (anim_name == NULL) anim_name = "walking_right";
+    size_t direction_size = 0;
+    size_t pos = 0;
+    while (anim_name[pos] != '_')pos++;
+    while (anim_name[pos+direction_size] != '\0')direction_size++;
+    if (direction_size <= 0) return;
+    char *direction = (char *)malloc(direction_size+1);
+    if (direction == NULL) {
+        printf("Couldn't set direction in animation!\n");
+        return;
+    }
+    for (size_t i = 0; i < direction_size; i++)direction[i] = anim_name[pos+i];
+    direction[direction_size] = '\0';
+    char *out = (char *)malloc(strlen(new_animation_name)+direction_size+2);
+    if (out == NULL) {
+        printf("Couldn't create animation out name!\n");
+        return;
+    }
+    sprintf(out, "%s%s", new_animation_name, direction);
+    ChangeCurrentAnimation(GetPlayerPtr()->brush->anim_group, out);
+    free(out);
+    free(direction);
+}
+
+// Basic Update Function (player movement)
 void UpdatePosition(float dt, SpriteGroup* collisions){
     dt = (dt > 0.05f) ? 0.05f : dt;
+    UpdateAnimatedSprite(GetPlayerPtr()->brush->anim_group, dt);
     if (lock_input){
         stun_time+=dt;
         if (stun_time >= max_stun){
@@ -227,6 +267,12 @@ void UpdatePosition(float dt, SpriteGroup* collisions){
         player_forces[1]+=gravity*dt;
     }
     if (player_forces[0] != 0){
+        if (a || d){
+            if (a)ChangeCurrentAnimation(GetPlayerPtr()->brush->anim_group, "walking_left");
+            if (d)ChangeCurrentAnimation(GetPlayerPtr()->brush->anim_group, "walking_right");
+        }else{
+            ChangeAnimationNoDir("still");
+        }
         int m = (player_forces[0] > 0) ? 1 : -1;
         curr_pos.x += (int)(player_forces[0]*dt);
         player_forces[0] = (float)(abs(player_forces[0])-(grounded ? friction : friction-air_loss)*dt)*m;
