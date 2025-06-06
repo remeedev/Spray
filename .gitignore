@@ -1,3 +1,5 @@
 *.exe
 
 assets/*.png
+
+previous_versions/
