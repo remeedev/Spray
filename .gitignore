@@ -1,5 +1,6 @@
 *.exe
 
 assets/*
+assets/*/*
 
 previous_versions/
