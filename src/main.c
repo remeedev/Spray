@@ -4,6 +4,7 @@
 
 #include "headers/drawing.h"
 #include "headers/movement.h"
+#include "headers/level_loader.h"
 
 void get_mouse_pos(HWND hWnd, LPPOINT out){
     // Adding default values
@@ -23,18 +24,7 @@ void get_mouse_pos(HWND hWnd, LPPOINT out){
 
 // Inner game loop
 int running = TRUE;
-
-// Delete later (move to another file)
-
-SpriteGroup *collisions = NULL;
-POINT p1, p2;
-
-// =================================
-
-// Screen buffering (fix for flickering)
-HBITMAP hbmMem = NULL;
-HDC hdcMem = NULL;
-HBITMAP hbmOld = NULL;
+int paused = FALSE;
 
 // Store screen size
 int screen_width = 1080;
@@ -45,8 +35,7 @@ void get_screen_dimensions(HWND hwnd){
     if (GetClientRect(hwnd, &rect)){
         screen_height = rect.bottom-rect.top;
         screen_width = rect.right-rect.left;
-        UpdateMapBoundaries(collisions, screen_width, screen_height);
-        UpdatePositionOnResize(screen_width, screen_height);
+        // UpdateMapBoundaries(collisions, screen_width, screen_height);
     }
 }
 
@@ -54,78 +43,35 @@ void get_screen_dimensions(HWND hwnd){
 LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) {
     switch (msg) {
         case WM_CREATE: ;
-            // Delete Later
-            p1.x = -1;
-            p2.x = -1;
-            // ================
             // Screen buffering fix
+            StartGraphics(hWnd);
             InitPlayer();
             LoadBrushes();
-            collisions = CreateMapBoundaries(100, screen_width, screen_height);
-            AppendToGroup(collisions, CreateStairsWithCoords(100, screen_height-100, 400, 400));
-            CreateSpriteInGroup(collisions, screen_width-500, 300, 100, 200, RGB(0, 0, 255));
-            CreateSpriteInGroup(collisions, screen_width-100, 300, 100, screen_height-600, RGB(0, 0, 255));
-            HDC hdc = GetDC(hWnd);
-            hdcMem = CreateCompatibleDC(hdc);
-            hbmMem = CreateCompatibleBitmap(hdc, screen_width, screen_height);
-            hbmOld = (HBITMAP)SelectObject(hdcMem, hbmMem);
-            ReleaseDC(hWnd, hdc);
+            Resize(hWnd, screen_width, screen_height);
+            loadLevel("./levels/dojo.txt");
             break;
         case WM_SIZE:
             get_screen_dimensions(hWnd);
-            if (hdcMem) {
-                // Clean up old bitmap
-                SelectObject(hdcMem, hbmOld);
-                DeleteObject(hbmMem);
-
-                HDC hdc = GetDC(hWnd);
-                hbmMem = CreateCompatibleBitmap(hdc, screen_width, screen_height);
-                hbmOld = (HBITMAP)SelectObject(hdcMem, hbmMem);
-                ReleaseDC(hWnd, hdc);
-            }
+            Resize(hWnd, screen_width, screen_height);
             break;
         case WM_CLOSE:
             printf("Closing window...\n");
+            onEnd();
             running = FALSE;
             DestroyWindow(hWnd);
             break;
         case WM_DESTROY:
             printf("Destroying the window!\n");
             running = FALSE;
-            if (hdcMem && hbmOld) SelectObject(hdcMem, hbmOld);
-            if (hdcMem) DeleteDC(hdcMem);
-            if (hbmMem) DeleteObject(hbmMem);
-            EndPlayer();
-            deleteBrushes();
-            DeleteSpriteGroup(collisions);
             PostQuitMessage(0);
             return 0;
         case WM_PAINT: ;
-            PAINTSTRUCT ps;
-            HDC hdcW = BeginPaint(hWnd, &ps);
-            FillRect(hdcMem, &ps.rcPaint, (HBRUSH)(BLACK_BRUSH));
-            PaintSpriteGroup(hdcMem, collisions);
-            PaintSprite(hdcMem, GetPlayerPtr());
-            BitBlt(hdcW, 0, 0, screen_width, screen_height, hdcMem, 0, 0, SRCCOPY);
-            EndPaint(hWnd, &ps);
-            break;
-        case WM_LBUTTONDOWN: ;
-            // Messing with staircase function
-            // POINT mouse_pos;
-            // get_mouse_pos(hWnd, &mouse_pos);
-            // if (p1.x == -1){
-            //     p1 = mouse_pos;
-            // }else{
-            //     if (p2.x == -1){
-            //         p2 = mouse_pos;
-            //         int dy = p2.y - p1.y;
-            //         p2.y -= dy%25;
-            //         AppendToGroup(collisions, CreateStairCase(p1, p2));
-            //     }
-            // }
+            // 1280x720
+            Draw(hWnd, screen_width, screen_height, paused);
             break;
         case WM_KEYDOWN: ;
             HandleKeyDown(wParam);
+            if (wParam == VK_ESCAPE)paused = !paused;
             break;
         case WM_KEYUP: ;
             HandleKeyUp(wParam);
@@ -147,7 +93,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     wc.hCursor = LoadCursor(NULL, IDC_ARROW);
     wc.hIcon = LoadIcon(NULL, IDI_APPLICATION);
     wc.hIconSm = LoadIcon(NULL, IDI_APPLICATION);
-    wc.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
+    wc.hbrBackground = (HBRUSH)(BLACK_BRUSH);
     wc.lpszMenuName = NULL;
     wc.lpszClassName = "WindowClass";
 
@@ -196,8 +142,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
         }
         gettimeofday(&end, NULL);
         float dt = (end.tv_sec - start.tv_sec) + (end.tv_usec - start.tv_usec) / 1000000.0f;
-        UpdatePosition(dt, collisions);
         // Redraw
+        if (!paused) Update(dt);
         InvalidateRect(hWnd, NULL, FALSE);
         gettimeofday(&start, NULL);
     }

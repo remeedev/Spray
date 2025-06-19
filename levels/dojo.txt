@@ -1,0 +1,9 @@
+BGI="./assets/test_bg.png",8
+COL=-40,592,1360,128,"./assets/stone_floor.png",8
+COL=368,408,296,16,#149,104,42#
+COL=856,408,296,16,#149,104,42#
+COL=100,475,128,136,"./assets/trash.png",8
+COL=1200,308,80,25,#149,104,42#
+REF=1270,108,10,200,"./levels/test.txt"
+FRN=670,0,96,128,"./assets/cop",8
+!CNV="./dialogues/text.txt"

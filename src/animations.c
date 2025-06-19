@@ -13,7 +13,7 @@ Handles Spritesheet animation and sprite animations
 // Basic Animation Structures
 typedef struct Animation {
     HBITMAP base_image;
-    int curr_image, image_count, fps;
+    int curr_image, image_count, fps, upscale;
     SIZE frame_dimensions;
     float frame_counter;
     char *animation_name;
@@ -27,7 +27,7 @@ typedef struct AnimationGroup {
 
 
 // ======= INIT FUNCTIONS =======
-Animation *LoadSpriteSheet(char *image_name, char *animation_name, size_t FrameWidth, size_t FrameHeight, int fps){
+Animation *LoadSpriteSheet(char *image_name, char *animation_name, size_t FrameWidth, size_t FrameHeight, int fps, float upscale){
     // Load the sprite sheet anim
     HBITMAP image = LoadPNGAsBmp(image_name);
 
@@ -41,7 +41,8 @@ Animation *LoadSpriteSheet(char *image_name, char *animation_name, size_t FrameW
     out_anim->base_image = image;
     BITMAP bm;
     GetObject(image, sizeof(bm), &bm);
-    out_anim->image_count = (int)((float)bm.bmWidth/(float)FrameWidth) * (int)((float)bm.bmHeight/(float)FrameHeight);
+    out_anim->image_count = (int)((float)bm.bmWidth/((float)FrameWidth/upscale)) * (int)((float)bm.bmHeight/((float)FrameHeight/upscale));
+    out_anim->upscale = upscale;
 
     // Save the dimensions of frame
     SIZE frame_dimensions;
@@ -73,8 +74,8 @@ AnimationGroup *CreateAnimatedGroup(Animation *first_anim){
 }
 
 // Init function from name
-AnimationGroup *LoadPNGIntoSprite(char *file_name, char *anim_name, size_t width, size_t height, int fps){
-    Animation *anim = LoadSpriteSheet(file_name, anim_name, width, height, fps);
+AnimationGroup *LoadPNGIntoSprite(char *file_name, char *anim_name, size_t width, size_t height, int fps, int upscale){
+    Animation *anim = LoadSpriteSheet(file_name, anim_name, width, height, fps, upscale);
     AnimationGroup *anim_group = CreateAnimatedGroup(anim);
     if (anim == NULL || anim_group == NULL)printf("Failed to load animation!\n");
     return anim_group;
@@ -97,8 +98,8 @@ void AppendAnimation(AnimationGroup *group, Animation *animation){
     curr->next = to_append;
 }
 
-void AddToAnimationGroup(AnimationGroup *group, char *file_name, char *anim_name, size_t width, size_t height, int fps){
-    Animation *anim = LoadSpriteSheet(file_name, anim_name, width, height, fps);
+void AddToAnimationGroup(AnimationGroup *group, char *file_name, char *anim_name, size_t width, size_t height, int fps, int upscale){
+    Animation *anim = LoadSpriteSheet(file_name, anim_name, width, height, fps, upscale);
     AppendAnimation(group, anim);
 }
 // ======= LIST FUNCTIONS END =========
@@ -143,9 +144,9 @@ void DrawAnimatedSprite(HDC hdc, AnimationGroup *animated_sprite, int x, int y){
             bf.AlphaFormat = AC_SRC_ALPHA;
         }
         SIZE frame = curr_anim->frame_dimensions;
-        int srcX = (frame.cx*curr_anim->curr_image)%bm.bmWidth;
-        int srcY = (int)((frame.cx*curr_anim->curr_image)/bm.bmWidth)*frame.cy;
-        if (!AlphaBlend(hdc, x, y, frame.cx, frame.cy, hdcMem, (LONG)srcX, (LONG)srcY, (LONG)frame.cx, (LONG)frame.cy, bf))printf("");
+        int srcX = ((frame.cx/curr_anim->upscale)*curr_anim->curr_image)%bm.bmWidth;
+        int srcY = (int)(((frame.cx/curr_anim->upscale)*curr_anim->curr_image)/bm.bmWidth)*(frame.cy/curr_anim->upscale);
+        if (!AlphaBlend(hdc, x, y, frame.cx, frame.cy, hdcMem, srcX, srcY, (int)((float)frame.cx/(float)curr_anim->upscale), (int)((float)frame.cy/(float)curr_anim->upscale), bf))printf("");
         SelectObject(hdcMem, hbmOld);
         DeleteDC(hdcMem);
     }
@@ -155,6 +156,7 @@ void DrawAnimatedSprite(HDC hdc, AnimationGroup *animated_sprite, int x, int y){
 void UpdateAnimatedSprite(AnimationGroup *animated_sprite, float dt){
     Animation *curr_anim = animated_sprite->playing ? animated_sprite->playing->animation : animated_sprite->animation;
     if (curr_anim == NULL)return;
+    if (curr_anim->fps == 0) return;
     curr_anim->frame_counter += dt;
     if (curr_anim->frame_counter > 1.0/((float) curr_anim->fps)){
         curr_anim->frame_counter = 0;
@@ -165,7 +167,6 @@ void UpdateAnimatedSprite(AnimationGroup *animated_sprite, float dt){
 // Changes animation playing for a group
 void ChangeCurrentAnimation(AnimationGroup *animated_sprite, char *animation_name){
     Animation *curr_anim = animated_sprite->playing ? animated_sprite->playing->animation : animated_sprite->animation;
-    if (curr_anim->fps == 0)return; // No frame change
     if (strcmp(animation_name, curr_anim->animation_name) == 0)return; // Nothing to change
     int changed = FALSE;
     AnimationGroup *start = animated_sprite;

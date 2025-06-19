@@ -71,7 +71,7 @@ unsigned char *ReadPNG(char *file_name, size_t *widthOutput, size_t *heightOutpu
     // Opening the file
     FILE *file = fopen(file_name, "rb");
     if (file == NULL){
-        printf("Couldn't find the file!\n");
+        printf("Couldn't find '%s'!\n", file_name);
         return NULL;
     }
 

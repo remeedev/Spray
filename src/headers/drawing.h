@@ -35,8 +35,8 @@ void deleteBrushes();
 
 // SPRITE CREATION
 void CreateSprite(Sprite* sprite, int x, int y, int cx, int cy, COLORREF color);
-void CreateImgSprite(Sprite* sprite, int x, int y, int cx, int cy, char *name);
-void CreateAnimatedSprite(Sprite* sprite, int x, int y, int cx, int cy, char *name, char *animation_name, int fps);
+void CreateImgSprite(Sprite* sprite, int x, int y, int cx, int cy, char *name, int upscale);
+void CreateAnimatedSprite(Sprite* sprite, int x, int y, int cx, int cy, char *name, char *animation_name, int fps, int upscale);
 
 void EraseSprite(Sprite *sprite);
 
@@ -46,6 +46,9 @@ void CreateSpriteInGroup(SpriteGroup *group, int x, int y, int cx, int cy, COLOR
 SpriteGroup *CreateSpriteGroup(int x, int y, int cx, int cy, COLORREF color);
 void DeleteSpriteGroup(SpriteGroup *group);
 void AppendToGroup(SpriteGroup *base_group, SpriteGroup *target);
+
+// ANIMATED SPRITES
+void UpdateAnimatedSprites(SpriteGroup *group, float dt);
 
 // MAP BOUNDARIES
 SpriteGroup *CreateMapBoundaries(int floor_level, int screen_width, int screen_height);

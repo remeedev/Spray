@@ -5,18 +5,21 @@
 
 // VARIABLE DEFINITION
 float player_speed = 1000.0f;
-float jump_force = 1500.0f;
+float jump_force = 1350.0f;
 
 // Gravity
 float gravity = 5000.0f;
 float friction = 3000.0f;
-float air_loss = 2500.0f;
+float air_loss = 800.0f;
 
 // Forgiveness Period
 float time_since = 0.0f;
 float forgive_period = 0.1f;
 float stun_time = 0.0f;
 float max_stun = 0.3f;
+
+// Ground Forgivance
+int GroundForgive = 5;
 
 int w = 0;
 int a = 0;
@@ -47,10 +50,12 @@ void HandleKeyDown(UINT key){
     };
     if (key == VK_SPACE){
         if ((lock_input == FALSE && (can_jump || time_since < forgive_period)) || debug){
-            player_forces[1] = -jump_force;
             if (!grounded) {
+                player_forces[1] = -(jump_force-air_loss);
                 player_forces[0] = jump_direction*jump_force;
                 lock_input = TRUE;
+            }else{
+                player_forces[1] = -jump_force;
             }
             jump_direction=0;
             can_jump = FALSE;
@@ -129,69 +134,94 @@ four_points equalize_points(four_points in_points, POINT edge, POINT target_edge
     return move_points(in_points, transform); // Returns the new points
 }
 
-// COLLISION DETECTION
-POINT get_transform_due(SpriteGroup* collisions){ // Function takes the collision boxes and processes player go down
-    // Gets the four edges of the player, then checks for collisions and returns final position
-    four_points points = calculate_points(GetPlayerPos(), GetPlayerSize());
-    SpriteGroup* curr_elem = collisions;
-    
-    // Reset information variables
-    grounded = FALSE;
-    can_jump = FALSE;
 
-    // Setup output
-    POINT out;
-    out.x = 0;
-    out.y = 0;
+
+int GetCollision(Sprite *sprite, int *out, Sprite *srcSprite){
+    // Literally code from get transform due
+    four_points points = calculate_points(srcSprite->pos, srcSprite->size);
+
+    four_points collision_points = calculate_points(sprite->pos, sprite->size);
+    int tl = LightInSprite(points.top_left, *sprite);
+    int tr = LightInSprite(points.top_right, *sprite);
+    int br = LightInSprite(points.bot_right, *sprite);
+    int bl = LightInSprite(points.bot_left, *sprite);
+
+    int itl = LightInSprite(collision_points.top_left, *srcSprite);
+    int itr = LightInSprite(collision_points.top_right, *srcSprite);
+    int ibr = LightInSprite(collision_points.bot_right, *srcSprite);
+    int ibl = LightInSprite(collision_points.bot_left, *srcSprite);
+    if (out != NULL){
+        out[0] = tl;
+        out[1] = tr;
+        out[2] = bl;
+        out[3] = br;
+        out[4] = itl;
+        out[5] = itr;
+        out[6] = ibl;
+        out[7] = ibr;
+    }
+    return tl+tr+br+bl+itl+itr+ibr+ibl;
+}
+
+// COLLISION DETECTION
+POINT get_transform_due(SpriteGroup* collisions, Sprite *sprite, int player, int *grounded, float forces[2]){ // Function takes the collision boxes and processes player go down
+    // Gets the four edges of the player, then checks for collisions and returns final position
+    four_points points = calculate_points(sprite->pos, sprite->size);
+    SpriteGroup* curr_elem = collisions;
+
+    *grounded = FALSE;
+    if (player){
+        // Reset information variables
+        can_jump = FALSE;
+    }
+
     while (curr_elem != NULL){
+        int *coll_info = (int *)malloc(sizeof(int)*8);
+        GetCollision(curr_elem->sprite, coll_info, sprite);
+        int tl = coll_info[0];
+        int tr = coll_info[1];
+        int bl = coll_info[2];
+        int br = coll_info[3];
+        int itl = coll_info[4];
+        int itr = coll_info[5];
+        int ibl = coll_info[6];
+        int ibr = coll_info[7];
+        free(coll_info);
         four_points collision_points = calculate_points(curr_elem->sprite->pos, curr_elem->sprite->size);
-        int tl = (LightInSprite(points.top_left, *curr_elem->sprite)==1) ? 1 : 0; // top left, right, etc.
-        int tr = (LightInSprite(points.top_right, *curr_elem->sprite)==1) ? 1 : 0;
-        int br = (LightInSprite(points.bot_right, *curr_elem->sprite)==1) ? 1 : 0;
-        int bl = (LightInSprite(points.bot_left, *curr_elem->sprite)==1) ? 1 : 0;
-        int total = tl + tr + br + bl;
-        int lower_range_x = collision_points.bot_left.x-2;
-        int upper_range_x = collision_points.bot_left.x+2;
-        int lower_range_xx = collision_points.bot_right.x-2;
-        int upper_range_xx = collision_points.bot_right.x+2;
-        
-        int shares_border_right = (points.bot_right.x >= lower_range_x && points.bot_right.x <= upper_range_x);
-        int shares_border_left = (points.bot_left.x >= lower_range_xx && points.bot_left.x <= upper_range_xx);
-        int shares_border = (shares_border_right || shares_border_left);
-        if (shares_border && total > 0){
-            jump_direction = shares_border_right ? -1 : 1;
-            can_jump = TRUE;
-            lock_input = FALSE;
-        }
-        if (points.bot_left.y >= collision_points.top_left.y-2 && points.bot_left.y <= collision_points.top_left.y+2 && (br || bl)){
-            grounded = TRUE;
-            can_jump = TRUE;
-        }
-        if (points.top_left.y >= collision_points.bot_left.y-2 && points.top_left.y <= collision_points.bot_left.y+2 && (tr || tl)){
-            player_forces[1] = -player_forces[1];
-        }
-        
-        if (total == 1){
-            if (tl == 1) points = equalize_points(points, points.top_left, collision_points.bot_right, grounded);
-            if (tr == 1) points = equalize_points(points, points.top_right, collision_points.bot_left, grounded);
-            if (bl == 1) points = equalize_points(points, points.bot_left, collision_points.top_right, grounded);
-            if (br == 1) points = equalize_points(points, points.bot_right, collision_points.top_left, grounded);
-        }
-        if (total == 2){
+        int total = tl+tr+br+bl;
+        int intTotal = itl+itr+ibr+ibl;
+
+        if (total == 2 || intTotal == 2){
             POINT transform;
             transform.x = 0;
             transform.y = 0;
-            if (tl == TRUE && tr == TRUE){ // Top
-                transform.y = collision_points.bot_left.y-points.top_left.y; // Make bottom of collider top of collided
-            }
-            if (bl == TRUE && br == TRUE){ // Bottom
-                transform.y = collision_points.top_left.y-points.bot_left.y;
-            }
-            if (tl == TRUE && bl == TRUE){ // Left side
-                transform.x = collision_points.top_right.x - points.bot_left.x;
-            }
-            if (tr == TRUE && br == TRUE){ // Right side
-                transform.x = collision_points.top_left.x - points.bot_right.x;
+            if ((bl && tl) || (itr && ibr)) transform.x = collision_points.top_right.x-points.bot_left.x;
+            if ((bl && br) || (itr && itl)) transform.y = collision_points.top_right.y-points.bot_right.y;
+            if ((br && tr) || (itl && ibl)) transform.x = collision_points.top_left.x-points.bot_right.x;
+            if ((tl && tr) || (ibl && ibr)) transform.y = collision_points.bot_left.y-points.top_right.y;
+            points = move_points(points, transform);
+        }
+
+        int foundGround = ((br || bl) || (itr && itl)) && points.bot_left.y == collision_points.top_right.y;
+        if (forces[1] > 0 && !foundGround && total > 0){
+            foundGround = points.bot_left.y >= collision_points.top_right.y - GroundForgive && points.bot_left.y <= collision_points.top_right.y + GroundForgive;
+        }
+        int foundCeiling = ((tr || tl) || (ibr && ibl)) && points.top_left.y == collision_points.bot_right.y;
+        if (foundCeiling && forces[1] < 0) forces[1] = -forces[1];
+        if (foundGround){
+            *grounded = TRUE;
+        }
+
+        if (total == 1){
+            POINT transform;
+            transform.x = 0;
+            transform.y = 0;
+            if (foundGround){
+                transform.y = collision_points.top_right.y - points.bot_right.y;
+            }else{
+                if (tl || tr) transform.y = collision_points.bot_right.y - points.top_right.y;
+                if (bl) transform.x = collision_points.bot_right.x - points.bot_left.x;
+                if (br) transform.x = collision_points.bot_left.x - points.bot_right.x;
             }
             points = move_points(points, transform);
         }
@@ -200,20 +230,8 @@ POINT get_transform_due(SpriteGroup* collisions){ // Function takes the collisio
     return points.top_left;
 }
 
-// Makes sure character is not outside of map
-void UpdatePositionOnResize(int screen_width, int screen_height){
-    POINT curr_pos = GetPlayerPos();
-    if (curr_pos.x > screen_width-GetPlayerSize().cx){
-        curr_pos.x = screen_width-GetPlayerSize().cx;
-    }
-    if (curr_pos.y > screen_height-GetPlayerSize().cx){
-        curr_pos.y = 0;
-    }
-    SetPlayerPos(curr_pos);
-}
-
-void ChangeAnimationNoDir(char *new_animation_name){
-    char *anim_name = GetCurrentAnimationName(GetPlayerPtr()->brush->anim_group);
+void ChangeAnimationNoDir(char *new_animation_name, Sprite *sprite){
+    char *anim_name = GetCurrentAnimationName(sprite->brush->anim_group);
     if (anim_name == NULL) anim_name = "walking_right";
     size_t direction_size = 0;
     size_t pos = 0;
@@ -233,9 +251,32 @@ void ChangeAnimationNoDir(char *new_animation_name){
         return;
     }
     sprintf(out, "%s%s", new_animation_name, direction);
-    ChangeCurrentAnimation(GetPlayerPtr()->brush->anim_group, out);
+    ChangeCurrentAnimation(sprite->brush->anim_group, out);
     free(out);
     free(direction);
+}
+
+void ChangeAnimationDirection(char *direction, Sprite *sprite){
+    char *anim_name = GetCurrentAnimationName(sprite->brush->anim_group);
+    if (anim_name == NULL) anim_name = "walking_right";
+    size_t anim_size = 0;
+    while (anim_name[anim_size] != '_')anim_size++;
+    char *base_name = (char *)malloc(anim_size+1);
+    if (base_name == NULL){
+        printf("Error allocating space!\n");
+        return;
+    }
+    for (int i = 0; i < anim_size; i++)base_name[i]=anim_name[i];
+    base_name[anim_size] = '\0';
+    char *out = (char *)malloc(anim_size + strlen(direction) + 2);
+    if (out == NULL){
+        printf("Error allocating space!\n");
+        return;
+    }
+    sprintf(out, "%s_%s", base_name, direction);
+    ChangeCurrentAnimation(sprite->brush->anim_group, out);
+    free(out);
+    free(base_name);
 }
 
 // Basic Update Function (player movement)
@@ -258,20 +299,16 @@ void UpdatePosition(float dt, SpriteGroup* collisions){
             if (abs(player_forces[0]) <= player_speed) player_forces[0] += 20*dt*player_speed*(d ? 1 : -1);
         }
     }
-    POINT curr_pos = GetPlayerPos();
     if (grounded == TRUE && player_forces[1] > 0){
         can_jump = TRUE;
         player_forces[1]=0;
         lock_input = 0;
     }else{
-        player_forces[1]+=gravity*dt;
+        player_forces[1]+=(int)(gravity*dt);
     }
+    POINT curr_pos = GetPlayerPos();
     if (player_forces[0] != 0){
-        if (a || d){
-            if (a)ChangeCurrentAnimation(GetPlayerPtr()->brush->anim_group, "walking_left");
-            if (d)ChangeCurrentAnimation(GetPlayerPtr()->brush->anim_group, "walking_right");
-        }else{
-            ChangeAnimationNoDir("still");
+        if (!grounded){
         }
         int m = (player_forces[0] > 0) ? 1 : -1;
         curr_pos.x += (int)(player_forces[0]*dt);
@@ -283,8 +320,22 @@ void UpdatePosition(float dt, SpriteGroup* collisions){
     if (player_forces[1] != 0){
         curr_pos.y += (int)(player_forces[1]*dt);
     }
+
     SetPlayerPos(curr_pos);
-    curr_pos = get_transform_due(collisions);
+    curr_pos = get_transform_due(collisions, GetPlayerPtr(), TRUE, &grounded, player_forces);
+    if (grounded){
+        if (a || d){
+            ChangeAnimationNoDir("walking", GetPlayerPtr());
+        }else{
+            ChangeAnimationNoDir("still", GetPlayerPtr());
+        }
+    }else{
+        if (player_forces[1] > 0){
+            ChangeAnimationNoDir("falling", GetPlayerPtr());
+        }
+    }
+    if (a)ChangeAnimationDirection("left", GetPlayerPtr());
+    if (d)ChangeAnimationDirection("right", GetPlayerPtr());
     SetPlayerPos(curr_pos);
     if (debug) printf("(%d, %d)\n", curr_pos.x, curr_pos.y);
 }

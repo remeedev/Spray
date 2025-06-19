@@ -19,16 +19,16 @@ typedef struct AnimationGroup {
 }AnimationGroup;
 
 // ======= INIT FUNCTIONS =======
-Animation *LoadSpriteSheet(char *image_name, char *animation_name, size_t FrameWidth, size_t FrameHeight, int fps);
+Animation *LoadSpriteSheet(char *image_name, char *animation_name, size_t FrameWidth, size_t FrameHeight, int fps, float upscale);
 AnimationGroup *CreateAnimatedGroup(Animation *first_anim);
-AnimationGroup *LoadPNGIntoSprite(char *file_name, char *anim_name, size_t width, size_t height, int fps);
+AnimationGroup *LoadPNGIntoSprite(char *file_name, char *anim_name, size_t width, size_t height, int fps, int upscale);
 
 // ======== GETTERS =================
 char *GetCurrentAnimationName(AnimationGroup *group);
 
 // ======= LIST FUNCTIONS =========
 void AppendAnimation(AnimationGroup *group, Animation *animation);
-void AddToAnimationGroup(AnimationGroup *group, char *file_name, char *anim_name, size_t width, size_t height, int fps);
+void AddToAnimationGroup(AnimationGroup *group, char *file_name, char *anim_name, size_t width, size_t height, int fps, int upscale);
 
 // ======= DELETE FUNCTIONS =========
 void DeleteAnimation(Animation *anim);

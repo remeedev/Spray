@@ -42,12 +42,19 @@ BrushPalette* SearchBrushesColor(COLORREF color){
     if (brushes == NULL)return NULL;
     BrushPalette *curr = brushes;
     int found = FALSE;
+    int sr = GetRValue(color);//Self Red
+    int sg = GetGValue(color);//Self Green
+    int sb = GetBValue(color);//Self Blue
     while (curr != NULL && !found){
-        if (curr->color == color && curr->type == 0) {
-            found = TRUE;
-        }else{
-            curr = curr->next;
+        if (curr->type == 0){
+            int r = GetRValue(curr->color);
+            int g = GetGValue(curr->color);
+            int b = GetBValue(curr->color);
+            if (r == sr && g == sg && b == sb) {
+                found = TRUE;
+            }
         }
+        if (!found) curr = curr->next;
     }
     return curr;
 }
@@ -75,6 +82,7 @@ BrushPalette *CreateNewColorBrush(COLORREF color){
         while (curr->next != NULL)curr = curr->next;
         curr->next = holder;
     }
+    return holder;
 }
 
 BrushPalette* SearchBrushesName(char *str){
@@ -91,13 +99,16 @@ BrushPalette* SearchBrushesName(char *str){
     return curr;
 }
 
-BrushPalette *LoadAnimationAsBrush(char *name, char *animation_name, size_t width, size_t height, int fps){
+BrushPalette *LoadAnimationAsBrush(char *name, char *animation_name, size_t width, size_t height, int fps, int upscale){
+    if (SearchBrushesName(name)){
+        return SearchBrushesName(name);
+    }
     BrushPalette *out = (BrushPalette *)malloc(sizeof(BrushPalette));
     if (out == NULL){
         printf("Unable to create Brush Palette from animation!\n");
         return NULL;
     }
-    AnimationGroup *anim_group = LoadPNGIntoSprite(name, animation_name, width, height, fps);
+    AnimationGroup *anim_group = LoadPNGIntoSprite(name, animation_name, width, height, fps, upscale);
     if (anim_group == NULL){
         printf("Unable to create animation group!\n");
         free(out);
@@ -122,6 +133,7 @@ void LoadBrushes(){
     CreateNewColorBrush(RGB(255, 0, 0));
     CreateNewColorBrush(RGB(0, 255, 0));
     CreateNewColorBrush(RGB(0, 0, 255));
+    CreateNewColorBrush(RGB(0, 0, 0));
 }
 
 void deleteBrushes(){
@@ -155,8 +167,8 @@ void CreateSprite(Sprite* sprite, int x, int y, int cx, int cy, COLORREF color){
     sprite->size = size;
 }
 
-void CreateImgSprite(Sprite* sprite, int x, int y, int cx, int cy, char *name){ // Create strictly single image sprite
-    sprite->brush = LoadAnimationAsBrush(name, "basic", (size_t)cx, (size_t)cy, 0);
+void CreateImgSprite(Sprite* sprite, int x, int y, int cx, int cy, char *name, int upscale){ // Create strictly single image sprite
+    sprite->brush = LoadAnimationAsBrush(name, "basic", (size_t)cx, (size_t)cy, 0, upscale);
     POINT pos;
     pos.x = x;
     pos.y = y;
@@ -167,8 +179,8 @@ void CreateImgSprite(Sprite* sprite, int x, int y, int cx, int cy, char *name){ 
     sprite->size = size;
 }
 
-void CreateAnimatedSprite(Sprite* sprite, int x, int y, int cx, int cy, char *name, char *animation_name, int fps){ // Creates animating sprite from spritesheet
-    sprite->brush = LoadAnimationAsBrush(name, animation_name, (size_t)cx, (size_t)cy, fps);
+void CreateAnimatedSprite(Sprite* sprite, int x, int y, int cx, int cy, char *name, char *animation_name, int fps, int upscale){ // Creates animating sprite from spritesheet
+    sprite->brush = LoadAnimationAsBrush(name, animation_name, (size_t)cx, (size_t)cy, fps, upscale);
     POINT pos;
     pos.x = x;
     pos.y = y;
@@ -177,6 +189,16 @@ void CreateAnimatedSprite(Sprite* sprite, int x, int y, int cx, int cy, char *na
     size.cy = cy;
     sprite->pos = pos;
     sprite->size = size;
+}
+
+void UpdateAnimatedSprites(SpriteGroup *group, float dt){
+    SpriteGroup *curr = group;
+    while (curr != NULL){
+        if (curr->sprite->brush->type == 1){
+            UpdateAnimatedSprite(curr->sprite->brush->anim_group, dt);
+        }
+        curr = curr->next;
+    }
 }
 
 // ====================== Sprite Group Logic =======================
@@ -229,10 +251,10 @@ void AppendToGroup(SpriteGroup *base_group, SpriteGroup *target){
 // MAP BOUNDARIES
 // Basic code for map boundaries
 SpriteGroup *CreateMapBoundaries(int floor_level, int screen_width, int screen_height){
-    SpriteGroup *collisions = CreateSpriteGroup(0, screen_height-floor_level, screen_width, floor_level, RGB(0, 255, 0));
-    CreateSpriteInGroup(collisions, -10, -10, 10, screen_height+20, RGB(0, 0, 255));
-    CreateSpriteInGroup(collisions, screen_width, -10, 10, screen_height+20, RGB(0, 0, 255));
-    CreateSpriteInGroup(collisions, 0, -10, screen_width, 10, RGB(0, 0, 255));
+    SpriteGroup *collisions = CreateSpriteGroup(0, screen_height-floor_level, screen_width, floor_level+100, RGB(0, 255, 0));
+    CreateSpriteInGroup(collisions, -100, -20, 100, screen_height+40, RGB(0, 0, 255));
+    CreateSpriteInGroup(collisions, screen_width, -20, 100, screen_height+40, RGB(0, 0, 255));
+    CreateSpriteInGroup(collisions, -20, -100, screen_width+40, 100, RGB(0, 0, 255));
     return collisions;
 }
 
@@ -292,10 +314,12 @@ Sprite *player = NULL;
 void InitPlayer(){
     if (player == NULL){
         player = (Sprite *)malloc(sizeof(Sprite));
-        CreateAnimatedSprite(player, 0, 0, 48*2, 64*2, "./assets/walking_right.png", "walking_right", 5);
-        AddToAnimationGroup(player->brush->anim_group, "./assets/walking_left.png", "walking_left", 48*2, 64*2, 5 );
-        AddToAnimationGroup(player->brush->anim_group, "./assets/still_right.png", "still_right", 48*2, 64*2, 0 );
-        AddToAnimationGroup(player->brush->anim_group, "./assets/still_left.png", "still_left", 48*2, 64*2, 0 );
+        CreateAnimatedSprite(player, 0, 0, 48*2, 64*2, "./assets/walking_right.png", "walking_right", 10, 8);
+        AddToAnimationGroup(player->brush->anim_group, "./assets/walking_left.png", "walking_left", 48*2, 64*2, 10, 8);
+        AddToAnimationGroup(player->brush->anim_group, "./assets/still_right.png", "still_right", 48*2, 64*2, 0, 8);
+        AddToAnimationGroup(player->brush->anim_group, "./assets/still_left.png", "still_left", 48*2, 64*2, 0, 8);
+        AddToAnimationGroup(player->brush->anim_group, "./assets/falling_right.png", "falling_right", 48*2, 64*2, 0, 8);
+        AddToAnimationGroup(player->brush->anim_group, "./assets/falling_left.png", "falling_left", 48*2, 64*2, 0, 8);
     }
 }
 
@@ -305,19 +329,21 @@ Sprite *GetPlayerPtr(){
 }
 
 POINT GetPlayerPos(){
+    InitPlayer();
     return player->pos;
 }
 
 SIZE GetPlayerSize(){
+    InitPlayer();
     return player->size;
 }
 
 void EndPlayer(){
-    EraseSprite(player);
+    if (player) EraseSprite(player);
 }
 
 void SetPlayerPos(POINT new_pos){
-    player->pos = new_pos;
+    if (player) player->pos = new_pos;
 }
 
 // =================== MAIN SPRITE CODE END ====================
