@@ -6,6 +6,7 @@
 #include "headers/movement.h"
 #include "headers/images.h"
 #include "headers/npc.h"
+#include "headers/generalvars.h"
 
 // Character collision object
 SpriteGroup *collisions = NULL;
@@ -270,7 +271,7 @@ void ProcessData(char *name, int argc, char **argv){
     if (strcmp(name, "CNV") == 0){
         if (argc >= 1){
             char *file_name = argv[0];
-            printf("Dialogue str: %s\n", file_name);
+            loadConvoToLastSprite(file_name);
         }
     }
     for (int i = 0; i < argc; i++) free(argv[i]); // Free all arguments
@@ -339,6 +340,9 @@ void StartGraphics(HWND hWnd){
     hbmMem = CreateCompatibleBitmap(hdc, game_res[0], game_res[1]);
     hbmOld = (HBITMAP)SelectObject(hdcMem, hbmMem);
     ReleaseDC(hWnd, hdc);
+    openGameFont();
+    WindowWidth = game_res[0];
+    WindowHeight = game_res[1];
 }
 
 int closest_width, closest_height;
@@ -362,8 +366,9 @@ void Draw(HWND hWnd, int screen_width, int screen_height, int paused){
         PaintSpriteGroup(hdcMem, collisions);
         // Shows redirect collision boxes
         // PaintSpriteGroup(hdcMem, redirects);
-        drawAllNPCs(hdcMem);
+        if (!talking) drawAllNPCs(hdcMem);
         PaintSprite(hdcMem, GetPlayerPtr());
+        if (talking) drawAllNPCs(hdcMem);
         game_paused = FALSE;
     }else{
         if (!game_paused){
@@ -476,6 +481,7 @@ void onEnd(){
     EndLastLevel();
     EndPlayer();
     deleteBrushes();
+    deleteFont();
     if (hdcMem && hbmOld) SelectObject(hdcMem, hbmOld);
     if (hdcMem) DeleteDC(hdcMem);
     if (hbmMem) DeleteObject(hbmMem);

@@ -28,8 +28,9 @@ typedef struct SpriteGroup {
 } SpriteGroup;
 
 // DIRECT BRUSH FUNCTIONS HIDDEN
-void LoadBrushes(); // Only two functions
+void LoadBrushes();
 void deleteBrushes();
+BrushPalette *CreateNewColorBrush(COLORREF color); // In case draw comes in from another file and a brush is needed
 
 // SPRITE FUNCTIONS
 

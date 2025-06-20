@@ -27,8 +27,8 @@ int running = TRUE;
 int paused = FALSE;
 
 // Store screen size
-int screen_width = 1080;
-int screen_height = 720;
+int screen_width;
+int screen_height;
 
 void get_screen_dimensions(HWND hwnd){
     RECT rect;
@@ -102,6 +102,11 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
         return 0;
     }
 
+    RECT screen_dimensions;
+    GetClientRect(GetDesktopWindow(), &screen_dimensions);
+    screen_width = (int)((((float)screen_dimensions.right)/1920.0f)*1080.0f);
+    screen_height = (int)((((float)screen_width)/16.0) * 9.0);
+
     HWND hWnd = CreateWindowEx(
         0,
         "WindowClass",
@@ -109,8 +114,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
         WS_OVERLAPPEDWINDOW,
         CW_USEDEFAULT,
         CW_USEDEFAULT,
-        1080,
-        720,
+        screen_width,
+        screen_height,
         NULL,
         NULL,
         hInstance,

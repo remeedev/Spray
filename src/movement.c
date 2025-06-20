@@ -1,5 +1,6 @@
 #include "headers/drawing.h"
 #include "headers/animations.h"
+#include "headers/npc.h"
 
 #include <stdio.h>
 
@@ -27,6 +28,7 @@ int s = 0;
 int d = 0;
 
 int lock_input = 0;
+int talking = FALSE;
 
 float player_forces[] = {0, 750};
 
@@ -38,6 +40,9 @@ int debug = FALSE;
 
 // ======== controls ===========
 void HandleKeyDown(UINT key){
+    if (key == VK_SPACE && talking) conversationsNext();
+    if (talking) return;
+    if (key == 'F') conversationsNext();
     if (key == 'W') w = 1;
     if (key == 'A')a = 1;
     if (key == 'S') s = 1;

@@ -20,5 +20,6 @@ POINT get_transform_due(SpriteGroup* collisions, Sprite *sprite, int player, int
 float gravity;
 float friction;
 int GroundForgive;
+int talking;
 
 #endif

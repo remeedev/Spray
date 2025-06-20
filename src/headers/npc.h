@@ -3,6 +3,10 @@
 #ifndef npc
 #define npc
 
+// CONVERSATION LOAD
+void loadConvoToLastSprite(char *file_name);
+void conversationsNext();
+
 void loadEnemyNPC(char *path, int x, int y, int cx, int cy, int upscale);
 void loadFriendlyNPC(char *path, int x, int y, int cx, int cy, int upscale);
 

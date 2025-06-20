@@ -1,3 +1,8 @@
-START
-1: Hello, World!
-2: Hello, Dud!
+./assets/player_header.png
+./assets/copheader.png
+./assets/copbacker.png
+-
+3: Y vamos a hacer el amor más rico esta noche.
+3: Y me compré un baby doll, rosado...
+2: Veci, puedo tener intimidad con mi compañera para hablar?
+1: Claro, pues es que estamos en un procedimiento de policia, no se que hacen hablando de eso.
