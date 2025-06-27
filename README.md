@@ -4,9 +4,8 @@
 
 ## Active
 
-- Save level data
-- NPCs
-- Dialogue
+- Pause Menu
+- Console
 
 ## TODO
 
@@ -19,3 +18,6 @@
 - Loading Screen
 - Options menu
 - Initial Watermark
+- Save level data
+- NPCs
+- Dialogue
