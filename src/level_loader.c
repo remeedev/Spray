@@ -383,16 +383,22 @@ void Draw(HWND hWnd, int screen_width, int screen_height, int paused){
         title_rect.top = 20;
         DrawText(hdcMem, title, -1, &title_rect, DT_TOP);
     }
-    
+
+    // BLACK BARS
     if (resized_ticks > 0.01){
         resized_ticks++;
-        if (resized_ticks > 30){
+        if (resized_ticks > 5){
             HBRUSH black_brush = CreateSolidBrush(RGB(0, 0, 0));
             FillRect(hdcW, &ps.rcPaint, black_brush);
             DeleteObject(black_brush);
             resized_ticks = 0;
         }
     }
+    
+    // FIX FOR ARTIFACTS
+    SetStretchBltMode(hdcW, HALFTONE);
+    SetBrushOrgEx(hdcW, 0, 0, NULL);
+    
     StretchBlt(hdcW, offsetX, offsetY, closest_width, closest_height, hdcMem, 0, 0, game_res[0], game_res[1], SRCCOPY);
     EndPaint(hWnd, &ps);
 }
@@ -400,12 +406,14 @@ void Draw(HWND hWnd, int screen_width, int screen_height, int paused){
 // Action on window resize
 void Resize(HWND hWnd, int screen_width, int screen_height){
     float aspect_ratio = (float)game_res[0]/game_res[1];
-    closest_width = screen_width;
-    closest_height = (int)((float)screen_width/aspect_ratio);
-    if (closest_height > screen_height){
-        closest_width = (int)((float)screen_height*aspect_ratio);
-        closest_height = screen_height;
-    }
+    float scaleX = ((float)screen_width)/(float)game_res[0];
+    float scaleY = ((float)screen_height)/(float)game_res[1];
+    float scale = scaleX < scaleY ? scaleX : scaleY;
+    closest_width = (int)(game_res[0]*scale);
+    closest_height = (int)(game_res[1]*scale);
+    // printf("Closest Approximation: %dx%d\n", closest_width, closest_height);
+
+    // CENTER THE IMAGE ON THE SCREEN
     offsetX = (int)((float)(screen_width-closest_width)/2.0);
     offsetY = (int)((float)(screen_height-closest_height)/2.0);
     resized_ticks = 1;
