@@ -162,6 +162,17 @@ void conversationsNext(){
     }
 }
 
+// Tries to skip on esc played
+int skip_conversation(){
+    int steps = 0;
+    if (conv_playing == NULL) return 0;
+    while (conv_playing != NULL){
+        conversationsNext();
+        steps++;
+    }
+    return steps;
+}
+
 void unloadConversation(conversation *conv){
     conversation *curr = conv;
     while (curr) {
@@ -324,6 +335,7 @@ void drawAllNPCs(HDC hdc){
         TextOutW(hdc, midWidth, midHeight, conv_playing->line, conv_playing->end);
         char *text = "Press \"Space\" to continue...";
         SetTextAlign(hdc, TA_BASELINE);
+        SelectObject(hdc, SmallFont);
         TextOut(hdc, 0, WindowHeight-10, text, strlen(text));
     }
 }

@@ -24,7 +24,6 @@ void get_mouse_pos(HWND hWnd, LPPOINT out){
 
 // Inner game loop
 int running = TRUE;
-int paused = FALSE;
 
 // Store screen size
 int screen_width;
@@ -71,7 +70,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) {
             break;
         case WM_KEYDOWN: ;
             HandleKeyDown(wParam);
-            if (wParam == VK_ESCAPE)paused = !paused;
+            UIKeyDown(wParam, hWnd);
             break;
         case WM_KEYUP: ;
             HandleKeyUp(wParam);

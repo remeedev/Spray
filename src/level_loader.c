@@ -350,9 +350,81 @@ int offsetX, offsetY;
 int resized_ticks = 0;
 
 int game_paused = FALSE;
+int paused = FALSE;
+int paused_opt = 0;
 
-void Draw(HWND hWnd, int screen_width, int screen_height, int paused){
-    // printf("Drawing!\n");
+char *pauseMenuOptions[] = {"Resume Game", "Options", "Credits", "Quit Game", NULL};
+
+void UIKeyDown(UINT key, HWND hWnd){
+    if (paused){
+        if (key == VK_ESCAPE) {
+            paused = FALSE;
+            paused_opt = 0;
+        }
+        if (key == VK_UP || key == 'W'){
+            if (paused_opt > 0){
+                paused_opt--;
+            }
+        }
+        if (key == VK_DOWN || key == 'S'){
+            if (pauseMenuOptions[paused_opt + 1] != NULL){
+                paused_opt++;
+            }
+        }
+        if (key == VK_RETURN){
+            switch (paused_opt){
+                case 0: ;
+                    paused = FALSE;
+                    break;
+                case 3: ;
+                    PostMessage(hWnd, WM_QUIT, 0, 0);
+                    break;
+                default:
+                    break;
+            }
+            paused_opt = 0;
+        }
+        return;
+    }
+    if (key == VK_ESCAPE){
+        if (skip_conversation() == 0){
+            paused = TRUE;
+        }
+    }
+}
+
+void DrawPauseMenu(HDC hdcMem, RECT *rcPaint){
+    if (!game_paused){
+        FillRect(hdcMem, rcPaint, CreateNewColorBrush(RGB(0, 0, 0))->brush);
+        game_paused = TRUE;
+    }
+    SelectObject(hdcMem, TitleFont);
+    SetBkMode(hdcMem, TRANSPARENT);
+    SetTextAlign(hdcMem, TA_TOP | TA_CENTER);
+    SetTextColor(hdcMem, RGB(255, 255, 255));
+    char *title = "Sprayz";
+    TextOut(hdcMem, game_res[0]/2, 0, title, strlen(title));
+
+    // Options
+    int spacing = 40;
+    int top_margin = 100;
+    int curr_opt = 0;
+    SelectObject(hdcMem, GameFont);
+    while (pauseMenuOptions[curr_opt] != NULL){
+        if (curr_opt == paused_opt){
+            SetTextColor(hdcMem, RGB(150, 150, 50));
+        } else{
+            SetTextColor(hdcMem, RGB(50, 50, 50));
+        }
+        TextOut(hdcMem, game_res[0]/2, spacing * (curr_opt + 1) + top_margin, pauseMenuOptions[curr_opt], strlen(pauseMenuOptions[curr_opt]));
+        curr_opt++;
+    }
+    SetTextColor(hdcMem, RGB(20, 20, 20));
+    SetTextAlign(hdcMem, TA_BOTTOM | TA_LEFT);
+    TextOut(hdcMem, 0, game_res[1], gameVersion, strlen(gameVersion));
+}
+
+void Draw(HWND hWnd, int screen_width, int screen_height){
     PAINTSTRUCT ps;
     HDC hdcW = BeginPaint(hWnd, &ps);
     RECT rcPaint;
@@ -360,7 +432,7 @@ void Draw(HWND hWnd, int screen_width, int screen_height, int paused){
     rcPaint.left = 0;
     rcPaint.bottom = game_res[1];
     rcPaint.right = game_res[0];
-    FillRect(hdcMem, &rcPaint, (HBRUSH)(BLACK_BRUSH));
+    FillRect(hdcMem, &rcPaint, CreateNewColorBrush(RGB(0, 0, 0))->brush);
     if (!paused){
         if (bg != NULL) PaintSprite(hdcMem, bg);
         PaintSpriteGroup(hdcMem, collisions);
@@ -371,17 +443,7 @@ void Draw(HWND hWnd, int screen_width, int screen_height, int paused){
         if (talking) drawAllNPCs(hdcMem);
         game_paused = FALSE;
     }else{
-        if (!game_paused){
-            HBRUSH black_brush = CreateSolidBrush(RGB(0, 0, 0));
-            FillRect(hdcW, &ps.rcPaint, black_brush);
-            DeleteObject(black_brush);
-            game_paused = TRUE;
-        }
-        char *title = "Sprayz";
-        RECT title_rect;
-        title_rect.left = 100;
-        title_rect.top = 20;
-        DrawText(hdcMem, title, -1, &title_rect, DT_TOP);
+        DrawPauseMenu(hdcMem, &rcPaint);
     }
 
     // BLACK BARS
@@ -394,7 +456,7 @@ void Draw(HWND hWnd, int screen_width, int screen_height, int paused){
             resized_ticks = 0;
         }
     }
-    
+
     // FIX FOR ARTIFACTS
     SetStretchBltMode(hdcW, HALFTONE);
     SetBrushOrgEx(hdcW, 0, 0, NULL);

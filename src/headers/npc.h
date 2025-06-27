@@ -7,6 +7,9 @@
 void loadConvoToLastSprite(char *file_name);
 void conversationsNext();
 
+// Conversation end
+int skip_conversation();
+
 void loadEnemyNPC(char *path, int x, int y, int cx, int cy, int upscale);
 void loadFriendlyNPC(char *path, int x, int y, int cx, int cy, int upscale);
 
