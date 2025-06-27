@@ -16,7 +16,6 @@
 - Level Creator
 - Main Menu
 - Loading Screen
-- Options menu
 - Initial Watermark
 - Save level data
 - NPCs
