@@ -7,6 +7,7 @@
 #include "headers/drawing.h"
 #include "headers/movement.h"
 #include "headers/generalvars.h"
+#include "headers/level_loader.h"
 
 float NPC_speed = 750.0;
 
@@ -26,6 +27,7 @@ typedef struct NPC {
     float forces[2];
     float still;
     float stillTimer;
+    int targetX;
     int talking;
     conversation *conv;
 } NPC;
@@ -252,6 +254,7 @@ void loadEnemyNPC(char *path, int x, int y, int cx, int cy, int upscale){
     newNPC->npcSprite = sprite;
     newNPC->conv = NULL;
     newNPC->talking = FALSE;
+    newNPC->targetX = sprite->pos.x;
     addToLoadedSprites(newNPC);
 }
 
@@ -287,6 +290,7 @@ void loadFriendlyNPC(char *path, int x, int y, int cx, int cy, int upscale){
     newNPC->npcSprite = sprite;
     newNPC->conv = NULL;
     newNPC->talking = FALSE;
+    newNPC->targetX = sprite->pos.x;
     addToLoadedSprites(newNPC);
 }
 
@@ -296,10 +300,28 @@ int distToPlayer(Sprite *sprite){
     return sqrt(pow(dy, 2.0) + pow(dx, 2.0));
 }
 
+void drawTextHUD(HDC hdc, int x, int y, char **texts){
+    int pos = 0;
+    int currY = y;
+    int currX = x;
+    TEXTMETRIC tm;
+    GetTextMetrics(hdc, &tm);
+    while (texts[pos] != NULL){
+        currY -= tm.tmHeight;
+        int drawnY = currY;
+        currY += tm.tmAscent - tm.tmHeight;
+        TextOut(hdc, currX, drawnY, texts[pos], strlen(texts[pos]));
+        pos++;
+    }
+
+}
+
 void drawAllNPCs(HDC hdc){
     NPCGroup *curr = loaded_NPCs;
+    int count = 0;
     while (curr != NULL){
-        if (curr->npc->conv != NULL && distToPlayer(curr->npc->npcSprite) < 200){
+        int conversative = curr->npc->conv != NULL && distToPlayer(curr->npc->npcSprite) < 200;
+        if (conversative && !showDebug){
             int dist = distToPlayer(curr->npc->npcSprite);
             chat_bubble->pos.x = curr->npc->npcSprite->pos.x;
             dist-=50;
@@ -309,6 +331,47 @@ void drawAllNPCs(HDC hdc){
             offsetY *= 20;
             chat_bubble->pos.y = curr->npc->npcSprite->pos.y + 10 - chat_bubble->size.cy - offsetY;
             PaintSprite(hdc, chat_bubble);
+        }
+        if (showCollisions){
+            RECT boundingBox;
+            boundingBox.left = curr->npc->npcSprite->pos.x;
+            boundingBox.top = curr->npc->npcSprite->pos.y;
+            boundingBox.right = boundingBox.left + curr->npc->npcSprite->size.cx;
+            boundingBox.bottom = boundingBox.top + curr->npc->npcSprite->size.cy;
+            FillRect(hdc, &boundingBox, CreateNewColorBrush(characterColor)->brush);
+        }
+        if (showDebug){
+            int currY = curr->npc->npcSprite->pos.y;
+            int midX = curr->npc->npcSprite->pos.x + (curr->npc->npcSprite->size.cx / 2);
+            SelectObject(hdc, SmallBig);
+            SetBkMode(hdc, TRANSPARENT);
+            SetTextAlign(hdc, TA_BASELINE | TA_CENTER);
+            
+            // GET POS
+            char posTxt[100];
+            sprintf(posTxt, "(%d, %d)", curr->npc->npcSprite->pos.x, curr->npc->npcSprite->pos.y);
+
+            // GET FORCES
+            char forcesTxt[100];
+            sprintf(forcesTxt, "%10f  %10f", curr->npc->forces[0], curr->npc->forces[1]);
+
+            // Still Timer
+            char timerTxt[100];
+            sprintf(timerTxt, "Timer State: %5f/%5f", curr->npc->still, curr->npc->stillTimer);
+            
+            // targetX
+            char targetTxt[100];
+            sprintf(targetTxt, "Target: %d", curr->npc->targetX);
+
+            // GET TALK STATE
+            char *talk_state = conversative ? "Ready to talk" : "Conversation available";
+
+            char *lvl = curr->npc->friendly ? "Friendly" : "Aggressive";
+            char idTxt[100];
+            count++;
+            sprintf(idTxt, "ID %d", count);
+            char *displayed_info[] = {posTxt, forcesTxt, timerTxt, targetTxt, talk_state, lvl, idTxt, NULL};
+            drawTextHUD(hdc, midX, currY, displayed_info);
         }
         DrawAnimatedSprite(hdc, curr->npc->npcSprite->brush->anim_group, curr->npc->npcSprite->pos.x, curr->npc->npcSprite->pos.y);
         curr = curr->next;
@@ -340,16 +403,32 @@ void drawAllNPCs(HDC hdc){
     }
 }
 
+int changeHarmLevel(int indexFrom1, int value){
+    int pos = 1;
+    NPCGroup *curr = loaded_NPCs;
+    int found = FALSE;
+    while (curr != NULL && !found){
+        if (pos == indexFrom1){
+            found = TRUE;
+            curr->npc->friendly = value;
+        }
+        pos++;
+        curr = curr->next;
+    }
+    return found;
+}
+
 void updateNPCs(SpriteGroup *collisions, float dt){
     dt = (dt > 0.05f) ? 0.05f : dt;
     NPCGroup *curr = loaded_NPCs;
+    int playerY = GetPlayerPos().y;
     while (curr != NULL){
         UpdateAnimatedSprite(curr->npc->npcSprite->brush->anim_group, dt);
         Sprite *selfObj = curr->npc->npcSprite;
         SpriteGroup *curr_coll = collisions;
         int grounded = FALSE;
         int prevX = selfObj->pos.x;
-        selfObj->pos = get_transform_due(collisions, selfObj, FALSE, &grounded, curr->npc->forces);
+        selfObj->pos = get_transform_due(collisions, selfObj, &grounded);
         // GRAVITY ON NPC
         if (!grounded){
             curr->npc->forces[1] += gravity*dt;
@@ -357,9 +436,8 @@ void updateNPCs(SpriteGroup *collisions, float dt){
             curr->npc->forces[1] = 0;
         }
 
-        if (selfObj->pos.x != prevX){
-            // curr->npc->forces[0] = 0;
-            curr->npc->forces[1] = -600.0;
+        if (selfObj->pos.x != prevX && grounded){
+            curr->npc->forces[1] = -jump_force;
         }
 
         if (curr->npc->forces[1] != 0){
@@ -375,8 +453,25 @@ void updateNPCs(SpriteGroup *collisions, float dt){
         }
         
         // GOTO PLAYER
-        if (selfObj->pos.y >= GetPlayerPos().y && selfObj->pos.y <= GetPlayerPos().y + GetPlayerSize().cy && curr->npc->friendly == FALSE){
-            curr->npc->forces[0] = ((GetPlayerPos().x - selfObj->pos.x) > 0) ? NPC_speed : -NPC_speed;
+        int dist = distToPlayer(curr->npc->npcSprite);
+        if (((curr->npc->npcSprite->pos.y >= GetPlayerPos().y && curr->npc->npcSprite->pos.y <= GetPlayerPos().y + GetPlayerSize().cy)
+        && curr->npc->friendly == FALSE || (dist < 400 && dist > 300))){
+            curr->npc->targetX = GetPlayerPos().x;
+            if (GetPlayerPos().y > selfObj->pos.y && grounded){
+                curr->npc->forces[1] = -jump_force;
+            }
+        }
+        if (curr->npc->friendly == TRUE){
+            curr->npc->targetX = selfObj->pos.x;
+        }
+        
+        if (curr->npc->friendly == FALSE && curr->npc->npcSprite->pos.x != curr->npc->targetX){
+            int prev = curr->npc->forces[0];
+            curr->npc->forces[0] = ((curr->npc->targetX - selfObj->pos.x) > 0) ? NPC_speed : -NPC_speed;
+            if (((prev > 0 && curr->npc->forces[0] < 0) || (prev < 0 && curr->npc->forces[0] > 0)) && prev != 0){
+                curr->npc->forces[0] = 0;
+                curr->npc->targetX = curr->npc->npcSprite->pos.x;
+            }
         }
 
         if (distToPlayer(selfObj) < 50 && curr->npc->friendly == FALSE){
@@ -387,6 +482,7 @@ void updateNPCs(SpriteGroup *collisions, float dt){
                 curr->npc->still += dt;
                 if (curr->npc->still > curr->npc->stillTimer){
                     curr->npc->stillTimer = (float)(rand()%100)/10.0;
+                    curr->npc->still = 0;
                     curr->npc->forces[0] = rand()%750;
                     curr->npc->forces[0] = rand()%2 ? -curr->npc->forces[0]-500 : curr->npc->forces[0]+500;
                 }

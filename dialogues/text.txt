@@ -2,8 +2,4 @@
 ./assets/copheader.png
 ./assets/copbacker.png
 -
-3: Y vamos a hacer el amor más rico esta noche.
-3: Y me compré un baby doll, rosado...
-2: Veci, puedo tener intimidad con mi compañera para hablar?
-1: Claro, pues es que estamos en un procedimiento de policia,
-1: no se que hacen hablando de eso...
+2: Hola, user!

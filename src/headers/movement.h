@@ -15,11 +15,13 @@ void UpdatePosition(float dt, SpriteGroup* collisions);
 
 void ChangeAnimationDirection(char *direction, Sprite *sprite);
 void ChangeAnimationNoDir(char *new_animation_name, Sprite *sprite);
-POINT get_transform_due(SpriteGroup* collisions, Sprite *sprite, int player, int *grounded, float forces[2]);
+POINT get_transform_due(SpriteGroup* collisions, Sprite *sprite, int *grounded);
 
 float gravity;
 float friction;
 int GroundForgive;
 int talking;
+float player_forces[2];
+float jump_force;
 
 #endif

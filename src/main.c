@@ -5,6 +5,8 @@
 #include "headers/drawing.h"
 #include "headers/movement.h"
 #include "headers/level_loader.h"
+#include "headers/console.h"
+#include "headers/generalvars.h"
 
 void get_mouse_pos(HWND hWnd, LPPOINT out){
     // Adding default values
@@ -55,7 +57,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) {
             break;
         case WM_CLOSE:
             printf("Closing window...\n");
-            onEnd();
             running = FALSE;
             DestroyWindow(hWnd);
             break;
@@ -74,6 +75,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) {
             break;
         case WM_KEYUP: ;
             HandleKeyUp(wParam);
+            break;
+        case WM_CHAR: ;
+            handleCharConsole(wParam);
             break;
         default:
             return DefWindowProc(hWnd, msg, wParam, lParam);
@@ -128,7 +132,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
     ShowWindow(hWnd, nCmdShow);
     UpdateWindow(hWnd);
-    
+
+    mainWindow = hWnd;
+
     MSG msg;
     struct timeval end, start;
     gettimeofday(&start, NULL);
@@ -152,5 +158,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
         gettimeofday(&start, NULL);
     }
     printf("Exiting the code...\n");
+    onEnd();
     return (int)msg.wParam;
 }

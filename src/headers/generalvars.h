@@ -8,9 +8,13 @@ int WindowHeight;
 
 char *gameVersion;
 
+HWND mainWindow;
+
 HFONT GameFont;
 HFONT SmallFont;
 HFONT TitleFont;
+HFONT ConsoleFont;
+HFONT SmallBig;
 
 void openGameFont();
 void deleteFont();

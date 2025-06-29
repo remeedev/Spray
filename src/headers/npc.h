@@ -18,4 +18,7 @@ void drawAllNPCs(HDC hdc);
 void clearSprites();
 
 void updateNPCs(SpriteGroup *collisions);
+
+int changeHarmLevel(int indexFrom1, int value);
+
 #endif

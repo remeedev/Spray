@@ -1,6 +1,15 @@
 #ifndef LevelLoader
 #define LevelLoader
 
+// ADMIN VARS
+
+int showCollisions;
+int showDebug;
+COLORREF collisionColor;
+COLORREF characterColor;
+
+// ADMIN VAR END
+
 void loadLevel(char *file_name);
 
 void UIKeyDown(UINT key, HWND hWnd);

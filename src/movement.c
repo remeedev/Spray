@@ -1,6 +1,8 @@
 #include "headers/drawing.h"
 #include "headers/animations.h"
 #include "headers/npc.h"
+#include "headers/console.h"
+#include "headers/generalvars.h"
 
 #include <stdio.h>
 
@@ -10,7 +12,7 @@ float jump_force = 1350.0f;
 
 // Gravity
 float gravity = 5000.0f;
-float friction = 3000.0f;
+float friction = 4000.0f;
 float air_loss = 800.0f;
 
 // Forgiveness Period
@@ -40,19 +42,14 @@ int debug = FALSE;
 
 // ======== controls ===========
 void HandleKeyDown(UINT key){
+    if (console_on) return;
     if (key == VK_SPACE && talking) conversationsNext();
     if (talking) return;
     if (key == 'F') conversationsNext();
     if (key == 'W') w = 1;
-    if (key == 'A')a = 1;
+    if (key == 'A') a = 1;
     if (key == 'S') s = 1;
     if (key == 'D') d = 1;
-    if (key == 'R') {
-        POINT a;
-        a.x = 0;
-        a.y = 0;
-        SetPlayerPos(a);
-    };
     if (key == VK_SPACE){
         if ((lock_input == FALSE && (can_jump || time_since < forgive_period)) || debug){
             if (!grounded) {
@@ -70,13 +67,11 @@ void HandleKeyDown(UINT key){
 }
 
 void HandleKeyUp(UINT key){
+    if (console_on) return;
     if (key == 'W') w = 0;
     if (key == 'A') a = 0;
     if (key == 'S') s = 0;
     if (key == 'D') d = 0;
-    if (key == 'X'){
-        debug = debug ? FALSE : TRUE;
-    }
 }
 // ======== controls end ===========
 
@@ -169,7 +164,15 @@ int GetCollision(Sprite *sprite, int *out, Sprite *srcSprite){
 }
 
 // COLLISION DETECTION
-POINT get_transform_due(SpriteGroup* collisions, Sprite *sprite, int player, int *grounded, float forces[2]){ // Function takes the collision boxes and processes player go down
+POINT get_transform_due(SpriteGroup* collisions, Sprite *sprite, int *grounded){ // Function takes the collision boxes and processes player go down
+    /*
+        Function returns the new position a Sprite should have considering the collisions that were passed to it.
+        Arguments:
+            SpriteGroup : the collisions to be applied
+            Sprite : The sprite that is currently moving
+            *int : 2nd output -> determines whether the sprite is grounded or not
+    */
+    int player = sprite == GetPlayerPtr() ? TRUE : FALSE;
     // Gets the four edges of the player, then checks for collisions and returns final position
     four_points points = calculate_points(sprite->pos, sprite->size);
     SpriteGroup* curr_elem = collisions;
@@ -182,6 +185,7 @@ POINT get_transform_due(SpriteGroup* collisions, Sprite *sprite, int player, int
 
     while (curr_elem != NULL){
         int *coll_info = (int *)malloc(sizeof(int)*8);
+        int assumedHeight = curr_elem->sprite->size.cy < 75 ? curr_elem->sprite->size.cy : 0;
         GetCollision(curr_elem->sprite, coll_info, sprite);
         int tl = coll_info[0];
         int tr = coll_info[1];
@@ -193,43 +197,41 @@ POINT get_transform_due(SpriteGroup* collisions, Sprite *sprite, int player, int
         int ibr = coll_info[7];
         free(coll_info);
         four_points collision_points = calculate_points(curr_elem->sprite->pos, curr_elem->sprite->size);
+
+        // EXTRA SPECIAL CASES goddamn :/
+        if ((points.top_left.y <= collision_points.top_left.y && points.bot_left.y >= collision_points.bot_left.y) &&
+            (points.bot_left.x >= collision_points.bot_left.x && points.bot_right.x <= collision_points.bot_right.x)){
+            bl = TRUE;
+            br = TRUE;
+        }
         int total = tl+tr+br+bl;
         int intTotal = itl+itr+ibr+ibl;
 
-        if (total == 2 || intTotal == 2){
-            POINT transform;
-            transform.x = 0;
-            transform.y = 0;
-            if ((bl && tl) || (itr && ibr)) transform.x = collision_points.top_right.x-points.bot_left.x;
-            if ((bl && br) || (itr && itl)) transform.y = collision_points.top_right.y-points.bot_right.y;
-            if ((br && tr) || (itl && ibl)) transform.x = collision_points.top_left.x-points.bot_right.x;
-            if ((tl && tr) || (ibl && ibr)) transform.y = collision_points.bot_left.y-points.top_right.y;
-            points = move_points(points, transform);
+        if (total == 0 && intTotal == 0){
+            // Player is not affected by obj
+            curr_elem = curr_elem->next;
+            continue;
         }
 
-        int foundGround = ((br || bl) || (itr && itl)) && points.bot_left.y == collision_points.top_right.y;
-        if (forces[1] > 0 && !foundGround && total > 0){
-            foundGround = points.bot_left.y >= collision_points.top_right.y - GroundForgive && points.bot_left.y <= collision_points.top_right.y + GroundForgive;
+        // DETERMINES WHETHER SPRITE IS COLLIDING WITH FLOOR
+        int tY = bl || br ? collision_points.top_left.y - points.bot_left.y : collision_points.bot_left.y - points.top_left.y + 1;
+        int tX = bl || ibr ? collision_points.top_right.x - points.top_left.x : collision_points.top_left.x - points.top_right.x;
+        int c75 = abs(tY) < abs(tX);
+        if (((bl && tl) || (br && tr) || (itl && ibl) || (itr && ibr)) || (((bl && itr) || (br && itl)) && !c75)){
+            points.bot_left.x += tX;
+            points.bot_right.x += tX;
+            points.top_left.x += tX;
+            points.top_right.x += tX;
         }
-        int foundCeiling = ((tr || tl) || (ibr && ibl)) && points.top_left.y == collision_points.bot_right.y;
-        if (foundCeiling && forces[1] < 0) forces[1] = -forces[1];
-        if (foundGround){
+        if (((bl && br) || (itr && itl) || (ibr && ibl) || (tl && tr)) ||
+        (((bl && itr) || (br && itl) || (tl && ibr) || (tr && ibl)) && c75)){
+            points.bot_left.y += tY;
+            points.bot_right.y += tY;
+            points.top_left.y += tY;
+            points.top_right.y += tY;
             *grounded = TRUE;
         }
-
-        if (total == 1){
-            POINT transform;
-            transform.x = 0;
-            transform.y = 0;
-            if (foundGround){
-                transform.y = collision_points.top_right.y - points.bot_right.y;
-            }else{
-                if (tl || tr) transform.y = collision_points.bot_right.y - points.top_right.y;
-                if (bl) transform.x = collision_points.bot_right.x - points.bot_left.x;
-                if (br) transform.x = collision_points.bot_left.x - points.bot_right.x;
-            }
-            points = move_points(points, transform);
-        }
+        
         curr_elem = curr_elem->next;
     }
     return points.top_left;
@@ -327,8 +329,9 @@ void UpdatePosition(float dt, SpriteGroup* collisions){
     }
 
     SetPlayerPos(curr_pos);
-    curr_pos = get_transform_due(collisions, GetPlayerPtr(), TRUE, &grounded, player_forces);
+    curr_pos = get_transform_due(collisions, GetPlayerPtr(), &grounded);
     if (grounded){
+        player_forces[1] = 0;
         if (a || d){
             ChangeAnimationNoDir("walking", GetPlayerPtr());
         }else{
@@ -342,5 +345,4 @@ void UpdatePosition(float dt, SpriteGroup* collisions){
     if (a)ChangeAnimationDirection("left", GetPlayerPtr());
     if (d)ChangeAnimationDirection("right", GetPlayerPtr());
     SetPlayerPos(curr_pos);
-    if (debug) printf("(%d, %d)\n", curr_pos.x, curr_pos.y);
 }

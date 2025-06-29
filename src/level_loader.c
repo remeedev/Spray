@@ -7,6 +7,13 @@
 #include "headers/images.h"
 #include "headers/npc.h"
 #include "headers/generalvars.h"
+#include "headers/console.h"
+
+// Admin Variables
+int showCollisions = FALSE;
+COLORREF collisionColor;
+COLORREF characterColor;
+int showDebug = FALSE;
 
 // Character collision object
 SpriteGroup *collisions = NULL;
@@ -341,6 +348,10 @@ void StartGraphics(HWND hWnd){
     hbmOld = (HBITMAP)SelectObject(hdcMem, hbmMem);
     ReleaseDC(hWnd, hdc);
     openGameFont();
+    InitConsole();
+
+    collisionColor = RGB(255, 0, 0);
+    characterColor = RGB(0, 255, 0);
     WindowWidth = game_res[0];
     WindowHeight = game_res[1];
 }
@@ -391,6 +402,7 @@ void UIKeyDown(UINT key, HWND hWnd){
             paused = TRUE;
         }
     }
+    handleKeyConsole(key);
 }
 
 void DrawPauseMenu(HDC hdcMem, RECT *rcPaint){
@@ -424,6 +436,58 @@ void DrawPauseMenu(HDC hdcMem, RECT *rcPaint){
     TextOut(hdcMem, 0, game_res[1], gameVersion, strlen(gameVersion));
 }
 
+void DrawCollisionsIfNeeded(HDC hdc){
+    if (!showCollisions) return;
+    RECT playerRect;
+    playerRect.left = GetPlayerPos().x;
+    playerRect.top = GetPlayerPos().y;
+    playerRect.right = playerRect.left + GetPlayerSize().cx;
+    playerRect.bottom = playerRect.top + GetPlayerSize().cy;
+    FillRect(hdc, &playerRect, CreateNewColorBrush(characterColor)->brush);
+    SpriteGroup *tmp = collisions;
+    while (tmp != NULL){
+        RECT box;
+        box.left = tmp->sprite->pos.x;
+        box.top = tmp->sprite->pos.y;
+        box.right = box.left + tmp->sprite->size.cx;
+        box.bottom = box.top + tmp->sprite->size.cy;
+        FillRect(hdc, &box, CreateNewColorBrush(collisionColor)->brush);
+        tmp = tmp->next;
+    }
+}
+
+void DrawPlayerDebug(HDC hdc){
+    SelectObject(hdc, SmallBig);
+    SetBkMode(hdc, TRANSPARENT);
+    SetTextColor(hdc, RGB(255, 255, 255));
+    int currY = GetPlayerPos().y;
+    TEXTMETRIC tm;
+    GetTextMetrics(hdc, &tm);
+    int spacing = 4;
+    int fontHeight = tm.tmHeight;
+    char posText[100];
+    POINT player_pos = GetPlayerPos();
+    sprintf(posText, "(%d, %d)", player_pos.x, player_pos.y);
+    SetTextAlign(hdc, TA_CENTER | TA_BASELINE);
+    int midX = player_pos.x + (GetPlayerSize().cx / 2);
+    
+    // Prepare draw
+    currY -= fontHeight+spacing;
+
+    // DRAW PLAYER POSITION
+    int drawnY = currY;
+    drawnY += -(fontHeight) + tm.tmAscent;
+    TextOut(hdc, midX, currY, posText, strlen(posText));
+
+    // DRAW PLAYER FORCES
+    char forcesText[256];
+    sprintf(forcesText, "%10f  %10f", player_forces[0], player_forces[1]);
+    currY -= fontHeight+spacing;
+    drawnY = currY;
+    drawnY += -(fontHeight) + tm.tmAscent;
+    TextOut(hdc, midX, currY, forcesText, strlen(forcesText));
+}
+
 void Draw(HWND hWnd, int screen_width, int screen_height){
     PAINTSTRUCT ps;
     HDC hdcW = BeginPaint(hWnd, &ps);
@@ -438,13 +502,17 @@ void Draw(HWND hWnd, int screen_width, int screen_height){
         PaintSpriteGroup(hdcMem, collisions);
         // Shows redirect collision boxes
         // PaintSpriteGroup(hdcMem, redirects);
+        DrawCollisionsIfNeeded(hdcMem);
         if (!talking) drawAllNPCs(hdcMem);
         PaintSprite(hdcMem, GetPlayerPtr());
         if (talking) drawAllNPCs(hdcMem);
         game_paused = FALSE;
+        if (showDebug) DrawPlayerDebug(hdcMem);
     }else{
         DrawPauseMenu(hdcMem, &rcPaint);
     }
+    // CONSOLE
+    DrawConsoleIfNeeded(hdcMem);
 
     // BLACK BARS
     if (resized_ticks > 0.01){
@@ -552,6 +620,7 @@ void onEnd(){
     EndPlayer();
     deleteBrushes();
     deleteFont();
+    DeleteConsoleIfNeeded();
     if (hdcMem && hbmOld) SelectObject(hdcMem, hbmOld);
     if (hdcMem) DeleteDC(hdcMem);
     if (hbmMem) DeleteObject(hbmMem);
