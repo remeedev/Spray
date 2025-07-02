@@ -41,6 +41,7 @@ NPCGroup *loaded_NPCs = NULL;
 Sprite *chat_bubble = NULL;
 
 conversation *conv_playing = NULL;
+SpriteGroup *dead_npcs = NULL;
 
 char *addPath(char *path, char *file){
     char *out = (char *)malloc(strlen(path) + strlen(file) + 1);
@@ -188,7 +189,7 @@ void unloadConversation(conversation *conv){
 void clearSprites(){
     if (chat_bubble) EraseSprite(chat_bubble);
     chat_bubble = NULL;
-    if (loaded_NPCs == NULL) return;
+    if (loaded_NPCs == NULL && dead_npcs == NULL) return;
     NPCGroup *curr = loaded_NPCs;
     while (curr != NULL){
         NPCGroup *prev = curr;
@@ -199,6 +200,17 @@ void clearSprites(){
         free(prev);
     }
     loaded_NPCs = NULL;
+
+    // LITERAL DEAD BODY CLEANUP
+    SpriteGroup *tmp = dead_npcs;
+    while (tmp != NULL){
+        SpriteGroup *copy = tmp;
+        tmp = tmp->next;
+        EraseSprite(copy->sprite);
+        free(copy);
+        copy = NULL;
+    }
+    dead_npcs = NULL;
 }
 
 void addToLoadedSprites(NPC *sprite){
@@ -330,6 +342,23 @@ void doShortAttack(Sprite *HurtBox, int damage){
         if (GetCollision(sprite, NULL, HurtBox) > 0){
             curr->npc->npcSprite->health -= damage;
             if (curr->npc->npcSprite->health <= 0){
+
+                // Create the dead body
+                Sprite *dead_npc = (Sprite *)malloc(sizeof(Sprite));
+                POINT pos = curr->npc->npcSprite->pos;
+                SIZE size = curr->npc->npcSprite->size;
+                CreateAnimatedSprite(dead_npc, pos.x, pos.y, size.cx, size.cy, "./assets/dead_spray.png", "basic", 24, 8);
+                SpriteGroup *npcWrapper = (SpriteGroup *)malloc(sizeof(SpriteGroup));
+                npcWrapper->sprite = dead_npc;
+                npcWrapper->next = NULL;
+                if (dead_npcs == NULL){
+                    dead_npcs = npcWrapper;
+                }else{
+                    SpriteGroup *tmp_sg = dead_npcs;
+                    while (tmp_sg->next != NULL)tmp_sg = tmp_sg->next;
+                    tmp_sg->next = npcWrapper;
+                }
+
                 NPCGroup *tmp = curr->next;
                 EraseSprite(curr->npc->npcSprite);
                 if (curr->npc->conv != NULL) unloadConversation(curr->npc->conv);
@@ -363,6 +392,10 @@ int health_bar_height = 15;
 int health_bar_padding = 1;
 
 void drawAllNPCs(HDC hdc){
+    // DEAD BODIES GO FIRST
+    if (dead_npcs) PaintSpriteGroup(hdc, dead_npcs);
+
+    // NOW THE ALIVE PEOPLE
     NPCGroup *curr = loaded_NPCs;
     int count = 0;
     while (curr != NULL){
@@ -550,9 +583,11 @@ void updateNPCs(SpriteGroup *collisions, float dt){
             }
         }
 
-        if (distToPlayer(selfObj) < 50 && curr->npc->friendly == FALSE && curr->npc->talked){
+        if (distToPlayer(selfObj) < 50 && (!curr->npc->talked || curr->npc->friendly == FALSE)){
             ChangeAnimationDirection(GetPlayerPos().x < selfObj->pos.x ? "left" : "right", selfObj);
-            ChangeAnimationNoDir("attack", selfObj);
+            if (curr->npc->talked){
+                ChangeAnimationNoDir("attack", selfObj);
+            }
         }else{
             // RANDOMIZED MOVEMENT
             if (curr->npc->forces[0] == 0 && grounded){
@@ -580,5 +615,17 @@ void updateNPCs(SpriteGroup *collisions, float dt){
             }
         }
         curr = curr->next;
+    }
+
+    // Update dead bodies
+    SpriteGroup *deadBodies = dead_npcs;
+    while(deadBodies != NULL){
+        if (deadBodies->sprite->brush->type == 1){
+            int currFrame = GetFrame(deadBodies->sprite->brush->anim_group);
+            if (currFrame < 12){
+                UpdateAnimatedSprite(deadBodies->sprite->brush->anim_group, dt);
+            }
+        }
+        deadBodies = deadBodies->next;
     }
 }

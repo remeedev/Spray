@@ -9,7 +9,6 @@
 - Main Menu
 - Loading Screen
 - Initial Watermark
-- Light attack
 
 ## TODO
 
@@ -25,3 +24,4 @@
 - ~~Pause Menu~~
 - ~~NPCs~~
 - ~~Dialogue~~
+- ~~Light attack~~
