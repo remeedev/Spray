@@ -435,7 +435,7 @@ void drawAllNPCs(HDC hdc){
             // GET TALK STATE
             char *talk_state = conversative ? "Ready to talk" : "Conversation available";
 
-            char *lvl = curr->npc->friendly ? "Friendly" : "Aggressive";
+            char *lvl = curr->npc->friendly ? "Friendly" : curr->npc->talked ? "Aggressive" : "Aggressive (Passive State)";
             char idTxt[100];
             count++;
             sprintf(idTxt, "ID %d", count);

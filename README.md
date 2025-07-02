@@ -4,8 +4,10 @@
 
 ## Active
 
-- Pause Menu
-- Console
+- Main Menu
+- Loading Screen
+- Initial Watermark
+- Light attack
 
 ## TODO
 
@@ -14,9 +16,9 @@
 - Levels
 - Level Art
 - Level Creator
-- Main Menu
-- Loading Screen
-- Initial Watermark
 - Save level data
-- NPCs
-- Dialogue
+
+~~- Console~~
+~~- Pause Menu~~
+~~- NPCs~~
+~~- Dialogue~~
