@@ -37,6 +37,9 @@ void DeleteAnimationGroup(AnimationGroup *anim_group);
 // DRAW FUNCTION
 void DrawAnimatedSprite(HDC hdc, AnimationGroup *animated_sprite, int x, int y);
 
+// GET CURRENT FRAME
+int GetFrame(AnimationGroup *animated_sprite);
+
 // FRAME UPDATE
 void UpdateAnimatedSprite(AnimationGroup *animated_sprite, float dt);
 

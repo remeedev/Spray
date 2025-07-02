@@ -28,6 +28,7 @@ typedef struct Sprite {
     POINT pos;
     SIZE size;
     BrushPalette* brush;
+    int health, damage, maxHealth;
 } Sprite;
 
 typedef struct SpriteGroup {
@@ -165,6 +166,9 @@ void CreateSprite(Sprite* sprite, int x, int y, int cx, int cy, COLORREF color){
     size.cy = cy;
     sprite->pos = pos;
     sprite->size = size;
+    sprite->health = 5;
+    sprite->maxHealth = 5;
+    sprite->damage = 1;
 }
 
 void CreateImgSprite(Sprite* sprite, int x, int y, int cx, int cy, char *name, int upscale){ // Create strictly single image sprite
@@ -177,6 +181,9 @@ void CreateImgSprite(Sprite* sprite, int x, int y, int cx, int cy, char *name, i
     size.cy = cy;
     sprite->pos = pos;
     sprite->size = size;
+    sprite->health = 5;
+    sprite->maxHealth = 5;
+    sprite->damage = 1;
 }
 
 void CreateAnimatedSprite(Sprite* sprite, int x, int y, int cx, int cy, char *name, char *animation_name, int fps, int upscale){ // Creates animating sprite from spritesheet
@@ -189,6 +196,9 @@ void CreateAnimatedSprite(Sprite* sprite, int x, int y, int cx, int cy, char *na
     size.cy = cy;
     sprite->pos = pos;
     sprite->size = size;
+    sprite->health = 5;
+    sprite->maxHealth = 5;
+    sprite->damage = 1;
 }
 
 void UpdateAnimatedSprites(SpriteGroup *group, float dt){
@@ -316,10 +326,13 @@ void InitPlayer(){
         player = (Sprite *)malloc(sizeof(Sprite));
         CreateAnimatedSprite(player, 0, 0, 48*2, 64*2, "./assets/walking_right.png", "walking_right", 10, 8);
         AddToAnimationGroup(player->brush->anim_group, "./assets/walking_left.png", "walking_left", 48*2, 64*2, 10, 8);
+        AddToAnimationGroup(player->brush->anim_group, "./assets/attacking_right.png", "attacking_right", 48*2, 64*2, 10, 8);
+        AddToAnimationGroup(player->brush->anim_group, "./assets/attacking_left.png", "attacking_left", 48*2, 64*2, 10, 8);
         AddToAnimationGroup(player->brush->anim_group, "./assets/still_right.png", "still_right", 48*2, 64*2, 0, 8);
         AddToAnimationGroup(player->brush->anim_group, "./assets/still_left.png", "still_left", 48*2, 64*2, 0, 8);
         AddToAnimationGroup(player->brush->anim_group, "./assets/falling_right.png", "falling_right", 48*2, 64*2, 0, 8);
         AddToAnimationGroup(player->brush->anim_group, "./assets/falling_left.png", "falling_left", 48*2, 64*2, 0, 8);
+        player->damage = 2;
     }
 }
 

@@ -19,6 +19,9 @@ void clearSprites();
 
 void updateNPCs(SpriteGroup *collisions);
 
+// DAMAGE SECTION
+void doShortAttack(Sprite *HurtBox, int damage);
+
 int changeHarmLevel(int indexFrom1, int value);
 
 #endif

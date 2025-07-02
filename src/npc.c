@@ -23,12 +23,10 @@ typedef struct conversation {
 
 typedef struct NPC {
     Sprite* npcSprite;
-    int friendly;
+    int friendly, targetX, talking, talked;
     float forces[2];
-    float still;
-    float stillTimer;
-    int targetX;
-    int talking;
+    float still, stillTimer;
+    float hitTime, hitTimeMax;
     conversation *conv;
 } NPC;
 
@@ -57,7 +55,7 @@ int conv_padd = 50;
 void loadConvoToLastSprite(char *file_name){
     if (chat_bubble == NULL){
         chat_bubble = (Sprite *)malloc(sizeof(Sprite));
-        CreateImgSprite(chat_bubble, 0, 0, 48*2, 32*2, "./assets/ui/chat_bubble.png", 2);
+        CreateImgSprite(chat_bubble, 0, 0, 88, 56, "./assets/ui/chat_bubble.png", 8);
     }
     FILE *file = fopen(file_name, "r");
     if (!file) return;
@@ -138,6 +136,7 @@ void loadConvoToLastSprite(char *file_name){
     NPCGroup *curr_npc = loaded_NPCs;
     while (curr_npc->next != NULL) curr_npc = curr_npc->next;
     curr_npc->npc->conv = out;
+    curr_npc->npc->talked = FALSE;
     fclose(file);
 }
 
@@ -150,6 +149,7 @@ void conversationsNext(){
         NPCGroup *curr = loaded_NPCs;
         while (curr->npc->talking == FALSE)curr = curr->next;
         curr->npc->talking = FALSE;
+        curr->npc->talked = TRUE;
         talking = FALSE;
         return;
     }
@@ -255,6 +255,9 @@ void loadEnemyNPC(char *path, int x, int y, int cx, int cy, int upscale){
     newNPC->conv = NULL;
     newNPC->talking = FALSE;
     newNPC->targetX = sprite->pos.x;
+    newNPC->talked = TRUE;
+    newNPC->hitTime = 1.5f;
+    newNPC->hitTimeMax = 1.5f;
     addToLoadedSprites(newNPC);
 }
 
@@ -291,6 +294,9 @@ void loadFriendlyNPC(char *path, int x, int y, int cx, int cy, int upscale){
     newNPC->conv = NULL;
     newNPC->talking = FALSE;
     newNPC->targetX = sprite->pos.x;
+    newNPC->talked = TRUE;
+    newNPC->hitTime = 1.5f;
+    newNPC->hitTimeMax = 1.5f;
     addToLoadedSprites(newNPC);
 }
 
@@ -316,12 +322,75 @@ void drawTextHUD(HDC hdc, int x, int y, char **texts){
 
 }
 
+void doShortAttack(Sprite *HurtBox, int damage){
+    NPCGroup *curr = loaded_NPCs;
+    NPCGroup *prev = NULL;
+    while(curr != NULL){
+        Sprite *sprite = curr->npc->npcSprite;
+        if (GetCollision(sprite, NULL, HurtBox) > 0){
+            curr->npc->npcSprite->health -= damage;
+            if (curr->npc->npcSprite->health <= 0){
+                NPCGroup *tmp = curr->next;
+                EraseSprite(curr->npc->npcSprite);
+                if (curr->npc->conv != NULL) unloadConversation(curr->npc->conv);
+                free(curr->npc);
+                free(curr);
+                curr = tmp;
+                if (prev == NULL) {
+                    loaded_NPCs = curr;
+                }else{
+                    prev->next = tmp;
+                }
+                continue;
+            }
+            curr->npc->forces[1] = -(jump_force - 200);
+            char *direction = getDirectionSprite(GetPlayerPtr());
+            curr->npc->forces[0] = strcmp(direction, "left") == 0 ? curr->npc->forces[1] : -curr->npc->forces[1];
+            free(direction);
+            curr->npc->hitTime = 0;
+            if (curr->npc->friendly == FALSE && curr->npc->talked == FALSE){
+                curr->npc->talked = TRUE;
+            }
+        }
+        prev = curr;
+        curr = curr->next;
+    }
+}
+
+// VARIABLES FOR SHOWING HEALTH BAR
+int health_bar_width = 100;
+int health_bar_height = 15;
+int health_bar_padding = 1;
+
 void drawAllNPCs(HDC hdc){
     NPCGroup *curr = loaded_NPCs;
     int count = 0;
     while (curr != NULL){
+        if (curr->npc->hitTime < curr->npc->hitTimeMax && !showDebug){
+            RECT healthArea;
+            healthArea.top = curr->npc->npcSprite->pos.y + curr->npc->npcSprite->size.cy;
+            healthArea.left = curr->npc->npcSprite->pos.x + (curr->npc->npcSprite->size.cx - health_bar_width) / 2;
+            healthArea.right = healthArea.left + health_bar_width;
+            healthArea.bottom = healthArea.top + health_bar_height;
+
+            RECT healthBar;
+            healthBar.top = healthArea.top + health_bar_padding;
+            healthBar.left = healthArea.left + health_bar_padding;
+            healthBar.right = healthArea.right - health_bar_padding;
+            healthBar.bottom = healthArea.bottom - health_bar_padding;
+
+            RECT healthValue = healthBar;
+            int total_width = healthBar.right - healthBar.left;
+            float health = ((float)curr->npc->npcSprite->health)/((float)curr->npc->npcSprite->maxHealth);
+            int perc_width = (int)(health*((float)total_width));
+            healthValue.right = healthValue.left+perc_width;
+
+            FillRect(hdc, &healthArea, CreateNewColorBrush(RGB(101, 67, 33))->brush);
+            FillRect(hdc, &healthBar, CreateNewColorBrush(RGB(150, 100, 50))->brush);
+            FillRect(hdc, &healthValue, CreateNewColorBrush(RGB(0, 150, 0))->brush);
+        }
         int conversative = curr->npc->conv != NULL && distToPlayer(curr->npc->npcSprite) < 200;
-        if (conversative && !showDebug){
+        if (conversative && !showDebug && curr->npc->talked == FALSE){
             int dist = distToPlayer(curr->npc->npcSprite);
             chat_bubble->pos.x = curr->npc->npcSprite->pos.x;
             dist-=50;
@@ -370,7 +439,11 @@ void drawAllNPCs(HDC hdc){
             char idTxt[100];
             count++;
             sprintf(idTxt, "ID %d", count);
-            char *displayed_info[] = {posTxt, forcesTxt, timerTxt, targetTxt, talk_state, lvl, idTxt, NULL};
+
+            char healthTxt[100];
+            sprintf(healthTxt, "%d/%d", curr->npc->npcSprite->health, curr->npc->npcSprite->maxHealth);
+
+            char *displayed_info[] = {posTxt, forcesTxt, timerTxt, targetTxt, talk_state, lvl, healthTxt, idTxt, NULL};
             drawTextHUD(hdc, midX, currY, displayed_info);
         }
         DrawAnimatedSprite(hdc, curr->npc->npcSprite->brush->anim_group, curr->npc->npcSprite->pos.x, curr->npc->npcSprite->pos.y);
@@ -423,6 +496,9 @@ void updateNPCs(SpriteGroup *collisions, float dt){
     NPCGroup *curr = loaded_NPCs;
     int playerY = GetPlayerPos().y;
     while (curr != NULL){
+        if (curr->npc->hitTime < curr->npc->hitTimeMax){
+            curr->npc->hitTime += dt;
+        }
         UpdateAnimatedSprite(curr->npc->npcSprite->brush->anim_group, dt);
         Sprite *selfObj = curr->npc->npcSprite;
         SpriteGroup *curr_coll = collisions;
@@ -465,7 +541,7 @@ void updateNPCs(SpriteGroup *collisions, float dt){
             curr->npc->targetX = selfObj->pos.x;
         }
         
-        if (curr->npc->friendly == FALSE && curr->npc->npcSprite->pos.x != curr->npc->targetX){
+        if (curr->npc->friendly == FALSE && curr->npc->npcSprite->pos.x != curr->npc->targetX && curr->npc->talked){
             int prev = curr->npc->forces[0];
             curr->npc->forces[0] = ((curr->npc->targetX - selfObj->pos.x) > 0) ? NPC_speed : -NPC_speed;
             if (((prev > 0 && curr->npc->forces[0] < 0) || (prev < 0 && curr->npc->forces[0] > 0)) && prev != 0){
@@ -474,7 +550,8 @@ void updateNPCs(SpriteGroup *collisions, float dt){
             }
         }
 
-        if (distToPlayer(selfObj) < 50 && curr->npc->friendly == FALSE){
+        if (distToPlayer(selfObj) < 50 && curr->npc->friendly == FALSE && curr->npc->talked){
+            ChangeAnimationDirection(GetPlayerPos().x < selfObj->pos.x ? "left" : "right", selfObj);
             ChangeAnimationNoDir("attack", selfObj);
         }else{
             // RANDOMIZED MOVEMENT

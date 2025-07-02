@@ -20,6 +20,7 @@ typedef struct Sprite {
     POINT pos;
     SIZE size;
     BrushPalette* brush;
+    int health, damage, maxHealth;
 } Sprite;
 
 typedef struct SpriteGroup {

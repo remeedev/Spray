@@ -10,6 +10,8 @@
 float player_speed = 1000.0f;
 float jump_force = 1350.0f;
 
+int attacking = FALSE;
+
 // Gravity
 float gravity = 5000.0f;
 float friction = 4000.0f;
@@ -46,6 +48,7 @@ void HandleKeyDown(UINT key){
     if (key == VK_SPACE && talking) conversationsNext();
     if (talking) return;
     if (key == 'F') conversationsNext();
+    if (key == 'E') attacking = TRUE;
     if (key == 'W') w = 1;
     if (key == 'A') a = 1;
     if (key == 'S') s = 1;
@@ -237,22 +240,42 @@ POINT get_transform_due(SpriteGroup* collisions, Sprite *sprite, int *grounded){
     return points.top_left;
 }
 
-void ChangeAnimationNoDir(char *new_animation_name, Sprite *sprite){
+char *getRawAnimND(Sprite *sprite){
+    char *anim_name = GetCurrentAnimationName(sprite->brush->anim_group);
+    if (anim_name == NULL) anim_name = "walking_right";
+    size_t anim_size = 0;
+    while (anim_name[anim_size] != '_')anim_size++;
+    char *base_name = (char *)malloc(anim_size+1);
+    if (base_name == NULL){
+        printf("Error allocating space!\n");
+        return NULL;
+    }
+    for (int i = 0; i < anim_size; i++)base_name[i]=anim_name[i];
+    base_name[anim_size] = '\0';
+    return base_name;
+}
+
+char *getDirectionSprite(Sprite *sprite){
     char *anim_name = GetCurrentAnimationName(sprite->brush->anim_group);
     if (anim_name == NULL) anim_name = "walking_right";
     size_t direction_size = 0;
     size_t pos = 0;
     while (anim_name[pos] != '_')pos++;
     while (anim_name[pos+direction_size] != '\0')direction_size++;
-    if (direction_size <= 0) return;
+    if (direction_size <= 0) return NULL;
     char *direction = (char *)malloc(direction_size+1);
     if (direction == NULL) {
         printf("Couldn't set direction in animation!\n");
-        return;
+        return NULL;
     }
     for (size_t i = 0; i < direction_size; i++)direction[i] = anim_name[pos+i];
     direction[direction_size] = '\0';
-    char *out = (char *)malloc(strlen(new_animation_name)+direction_size+2);
+    return direction;
+}
+
+void ChangeAnimationNoDir(char *new_animation_name, Sprite *sprite){
+    char *direction = getDirectionSprite(sprite);
+    char *out = (char *)malloc(strlen(new_animation_name)+strlen(direction)+2);
     if (out == NULL) {
         printf("Couldn't create animation out name!\n");
         return;
@@ -264,18 +287,8 @@ void ChangeAnimationNoDir(char *new_animation_name, Sprite *sprite){
 }
 
 void ChangeAnimationDirection(char *direction, Sprite *sprite){
-    char *anim_name = GetCurrentAnimationName(sprite->brush->anim_group);
-    if (anim_name == NULL) anim_name = "walking_right";
-    size_t anim_size = 0;
-    while (anim_name[anim_size] != '_')anim_size++;
-    char *base_name = (char *)malloc(anim_size+1);
-    if (base_name == NULL){
-        printf("Error allocating space!\n");
-        return;
-    }
-    for (int i = 0; i < anim_size; i++)base_name[i]=anim_name[i];
-    base_name[anim_size] = '\0';
-    char *out = (char *)malloc(anim_size + strlen(direction) + 2);
+    char *base_name = getRawAnimND(sprite);
+    char *out = (char *)malloc(strlen(base_name) + strlen(direction) + 2);
     if (out == NULL){
         printf("Error allocating space!\n");
         return;
@@ -314,7 +327,7 @@ void UpdatePosition(float dt, SpriteGroup* collisions){
         player_forces[1]+=(int)(gravity*dt);
     }
     POINT curr_pos = GetPlayerPos();
-    if (player_forces[0] != 0){
+    if (player_forces[0] != 0 && !attacking){
         if (!grounded){
         }
         int m = (player_forces[0] > 0) ? 1 : -1;
@@ -330,19 +343,46 @@ void UpdatePosition(float dt, SpriteGroup* collisions){
 
     SetPlayerPos(curr_pos);
     curr_pos = get_transform_due(collisions, GetPlayerPtr(), &grounded);
-    if (grounded){
-        player_forces[1] = 0;
-        if (a || d){
-            ChangeAnimationNoDir("walking", GetPlayerPtr());
-        }else{
-            ChangeAnimationNoDir("still", GetPlayerPtr());
+    if (attacking){
+        player_forces[0] = 0;
+        ChangeAnimationNoDir("attacking", GetPlayerPtr());
+        if (GetFrame(GetPlayerPtr()->brush->anim_group) == 3){
+            char *direction = getDirectionSprite(GetPlayerPtr());
+            RECT hurtBox;
+            
+            // Create copy of sprite
+            Sprite *sprite_copy = (Sprite *)malloc(sizeof(Sprite));
+            if (sprite_copy == NULL){
+                printf("Error allocating space for game!\n");
+                return;
+            }
+            sprite_copy->pos = GetPlayerPtr()->pos;
+            sprite_copy->size = GetPlayerPtr()->size;
+            
+            // Do transformation
+            
+            if ( strcmp(direction, "left") == 0 )sprite_copy->pos.x -= 10;
+            if ( strcmp(direction, "right") == 0 )sprite_copy->pos.x += 10;
+            doShortAttack(sprite_copy, GetPlayerPtr()->damage);
+            free(sprite_copy);
+            free(direction);
+            attacking = FALSE;
         }
     }else{
-        if (player_forces[1] > 0){
-            ChangeAnimationNoDir("falling", GetPlayerPtr());
+        if (grounded){
+            player_forces[1] = 0;
+            if (a || d){
+                ChangeAnimationNoDir("walking", GetPlayerPtr());
+            }else{
+                ChangeAnimationNoDir("still", GetPlayerPtr());
+            }
+        }else{
+            if (player_forces[1] > 0){
+                ChangeAnimationNoDir("falling", GetPlayerPtr());
+            }
         }
+        if (a)ChangeAnimationDirection("left", GetPlayerPtr());
+        if (d)ChangeAnimationDirection("right", GetPlayerPtr());
     }
-    if (a)ChangeAnimationDirection("left", GetPlayerPtr());
-    if (d)ChangeAnimationDirection("right", GetPlayerPtr());
     SetPlayerPos(curr_pos);
 }

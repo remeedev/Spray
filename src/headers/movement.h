@@ -17,6 +17,9 @@ void ChangeAnimationDirection(char *direction, Sprite *sprite);
 void ChangeAnimationNoDir(char *new_animation_name, Sprite *sprite);
 POINT get_transform_due(SpriteGroup* collisions, Sprite *sprite, int *grounded);
 
+char *getRawAnimND(Sprite *sprite);
+char *getDirectionSprite(Sprite *sprite);
+
 float gravity;
 float friction;
 int GroundForgive;

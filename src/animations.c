@@ -164,6 +164,14 @@ void UpdateAnimatedSprite(AnimationGroup *animated_sprite, float dt){
     }
 }
 
+// Get current frame
+int GetFrame(AnimationGroup *animated_sprite){
+    Animation *curr_anim = animated_sprite->playing ? animated_sprite->playing->animation : animated_sprite->animation;
+    if (curr_anim == NULL)return 0;
+    if (curr_anim->fps == 0) return 0;
+    return curr_anim->curr_image;
+}
+
 // Changes animation playing for a group
 void ChangeCurrentAnimation(AnimationGroup *animated_sprite, char *animation_name){
     Animation *curr_anim = animated_sprite->playing ? animated_sprite->playing->animation : animated_sprite->animation;
