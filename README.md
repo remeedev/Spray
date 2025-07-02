@@ -2,6 +2,8 @@
 
 `author :` [remeedev](https://github.com/reemedev)
 
+**Download is not yet available!**
+
 ## Active
 
 - Main Menu
@@ -18,7 +20,8 @@
 - Level Creator
 - Save level data
 
-~~- Console~~
-~~- Pause Menu~~
-~~- NPCs~~
-~~- Dialogue~~
+## DONE
+- ~~Console~~
+- ~~Pause Menu~~
+- ~~NPCs~~
+- ~~Dialogue~~
