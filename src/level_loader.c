@@ -15,6 +15,12 @@ COLORREF collisionColor;
 COLORREF characterColor;
 int showDebug = FALSE;
 
+// General Options
+int drawWatermark = TRUE;
+Sprite *watermark = NULL;
+float watermark_timer = 0.0f;
+float watermark_duration = 5.0f;
+
 // Character collision object
 SpriteGroup *collisions = NULL;
 
@@ -341,6 +347,23 @@ void loadLevel(char *level_name){
     }
 }
 
+void setupWatermark(){
+    if (watermark)EraseSprite(watermark);
+    watermark = (Sprite *)malloc(sizeof(Sprite));
+    if (watermark == NULL){
+        printf("Error allocating resources for watermark!\n");
+        return;
+    }
+    int x, y, w, h;
+    w = game_res[0]*0.6;
+    w = w - (w % 96);
+    h = w/2;
+    x = (game_res[0] - w) / 2;
+    y = (game_res[1] - h) / 2;
+    int upscale = w/96;
+    CreateAnimatedSprite(watermark, x, y, w, h, "./assets/watermark_anim.png", "watermark", 12, upscale);
+}
+
 void StartGraphics(HWND hWnd){
     HDC hdc = GetDC(hWnd);
     hdcMem = CreateCompatibleDC(hdc);
@@ -349,6 +372,9 @@ void StartGraphics(HWND hWnd){
     ReleaseDC(hWnd, hdc);
     openGameFont();
     InitConsole();
+    if (drawWatermark){
+        setupWatermark();
+    }
 
     collisionColor = RGB(255, 0, 0);
     characterColor = RGB(0, 255, 0);
@@ -497,6 +523,27 @@ void Draw(HWND hWnd, int screen_width, int screen_height){
     rcPaint.bottom = game_res[1];
     rcPaint.right = game_res[0];
     FillRect(hdcMem, &rcPaint, CreateNewColorBrush(RGB(0, 0, 0))->brush);
+    
+    // BLACK BARS
+    if (resized_ticks > 0.01){
+        resized_ticks++;
+        if (resized_ticks > 5){
+            HBRUSH black_brush = CreateSolidBrush(RGB(0, 0, 0));
+            FillRect(hdcW, &ps.rcPaint, black_brush);
+            DeleteObject(black_brush);
+            resized_ticks = 0;
+        }
+    }
+
+    if (drawWatermark && watermark_timer < watermark_duration){
+        PaintSprite(hdcMem, watermark);
+        SetStretchBltMode(hdcW, HALFTONE);
+        SetBrushOrgEx(hdcW, 0, 0, NULL);
+        
+        StretchBlt(hdcW, offsetX, offsetY, closest_width, closest_height, hdcMem, 0, 0, game_res[0], game_res[1], SRCCOPY);
+        EndPaint(hWnd, &ps);
+        return;
+    }
     if (!paused){
         if (bg != NULL) PaintSprite(hdcMem, bg);
         PaintSpriteGroup(hdcMem, collisions);
@@ -513,17 +560,6 @@ void Draw(HWND hWnd, int screen_width, int screen_height){
     }
     // CONSOLE
     DrawConsoleIfNeeded(hdcMem);
-
-    // BLACK BARS
-    if (resized_ticks > 0.01){
-        resized_ticks++;
-        if (resized_ticks > 5){
-            HBRUSH black_brush = CreateSolidBrush(RGB(0, 0, 0));
-            FillRect(hdcW, &ps.rcPaint, black_brush);
-            DeleteObject(black_brush);
-            resized_ticks = 0;
-        }
-    }
 
     // FIX FOR ARTIFACTS
     SetStretchBltMode(hdcW, HALFTONE);
@@ -569,6 +605,15 @@ void EndLastLevel(){
 }
 
 void Update(float dt){
+    if (drawWatermark && watermark_timer < watermark_duration){
+        if (GetFrame(watermark->brush->anim_group) < 31)UpdateAnimatedSprite(watermark->brush->anim_group, dt);
+        watermark_timer+=dt;
+        if (watermark_timer >= watermark_duration){
+            EraseSprite(watermark);
+            watermark = NULL;
+        }
+        return;
+    }
     UpdatePosition(dt, collisions);
     UpdateAnimatedSprites(collisions, dt);
     SpriteGroup *curr = redirects;

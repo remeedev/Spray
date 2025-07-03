@@ -16,6 +16,7 @@ void UIKeyDown(UINT key, HWND hWnd);
 int paused;
 
 void Draw(HWND hWnd, int screen_width, int screen_height, int paused);
+void DrawExclusiveWM(HWND hWnd, Sprite *watermark);
 
 void Resize(HWND hWnd, int screen_width, int screen_height);
 

@@ -46,10 +46,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) {
         case WM_CREATE: ;
             // Screen buffering fix
             StartGraphics(hWnd);
-            InitPlayer();
-            LoadBrushes();
             Resize(hWnd, screen_width, screen_height);
-            loadLevel("./levels/dojo.txt");
+            LoadBrushes();
             break;
         case WM_SIZE:
             get_screen_dimensions(hWnd);
