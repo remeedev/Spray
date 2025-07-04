@@ -7,6 +7,7 @@
 #include "headers/level_loader.h"
 #include "headers/console.h"
 #include "headers/generalvars.h"
+#include "headers/handler.h"
 
 void get_mouse_pos(HWND hWnd, LPPOINT out){
     // Adding default values
@@ -45,37 +46,32 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) {
     switch (msg) {
         case WM_CREATE: ;
             // Screen buffering fix
-            StartGraphics(hWnd);
-            Resize(hWnd, screen_width, screen_height);
-            LoadBrushes();
+            startGameSystem(hWnd, screen_width, screen_height);
             break;
         case WM_SIZE:
             get_screen_dimensions(hWnd);
             Resize(hWnd, screen_width, screen_height);
             break;
         case WM_CLOSE:
-            printf("Closing window...\n");
             running = FALSE;
             DestroyWindow(hWnd);
             break;
         case WM_DESTROY:
-            printf("Destroying the window!\n");
             running = FALSE;
             PostQuitMessage(0);
             return 0;
         case WM_PAINT: ;
             // 1280x720
-            Draw(hWnd, screen_width, screen_height, paused);
+            drawEvent(hWnd);
             break;
         case WM_KEYDOWN: ;
-            HandleKeyDown(wParam);
-            UIKeyDown(wParam, hWnd);
+            handleKEYDOWN(wParam);
             break;
         case WM_KEYUP: ;
-            HandleKeyUp(wParam);
+            handleKEYUP(wParam);
             break;
         case WM_CHAR: ;
-            handleCharConsole(wParam);
+            handleCHAR(wParam);
             break;
         default:
             return DefWindowProc(hWnd, msg, wParam, lParam);
@@ -111,7 +107,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     HWND hWnd = CreateWindowEx(
         0,
         "WindowClass",
-        "My Window",
+        "Sprayz",
         WS_OVERLAPPEDWINDOW,
         CW_USEDEFAULT,
         CW_USEDEFAULT,
@@ -151,7 +147,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
         gettimeofday(&end, NULL);
         float dt = (end.tv_sec - start.tv_sec) + (end.tv_usec - start.tv_usec) / 1000000.0f;
         // Redraw
-        if (!paused) Update(dt);
+        dt = dt > 0.5 ? 0.5 : dt;
+        updateEvent(dt);
         InvalidateRect(hWnd, NULL, FALSE);
         gettimeofday(&start, NULL);
     }

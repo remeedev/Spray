@@ -16,6 +16,11 @@ HFONT TitleFont;
 HFONT ConsoleFont;
 HFONT SmallBig;
 
+COLORREF regular_text_color;
+COLORREF undermined_text_color;
+COLORREF highlight_text_color;
+COLORREF ignore_text_color;
+
 void openGameFont();
 void deleteFont();
 

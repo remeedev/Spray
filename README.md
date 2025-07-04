@@ -6,12 +6,11 @@
 
 ## Active
 
-- Main Menu
 - Loading Screen
-- Initial Watermark
 
 ## TODO
 
+- Set Player Spawn
 - Spraying
 - Grenades
 - Levels
@@ -25,3 +24,5 @@
 - ~~NPCs~~
 - ~~Dialogue~~
 - ~~Light attack~~
+- ~~Main Menu~~
+- ~~Initial Watermark~~

@@ -8,18 +8,13 @@
 #include "headers/npc.h"
 #include "headers/generalvars.h"
 #include "headers/console.h"
+#include "headers/handler.h"
 
 // Admin Variables
 int showCollisions = FALSE;
 COLORREF collisionColor;
 COLORREF characterColor;
 int showDebug = FALSE;
-
-// General Options
-int drawWatermark = TRUE;
-Sprite *watermark = NULL;
-float watermark_timer = 0.0f;
-float watermark_duration = 5.0f;
 
 // Character collision object
 SpriteGroup *collisions = NULL;
@@ -347,23 +342,6 @@ void loadLevel(char *level_name){
     }
 }
 
-void setupWatermark(){
-    if (watermark)EraseSprite(watermark);
-    watermark = (Sprite *)malloc(sizeof(Sprite));
-    if (watermark == NULL){
-        printf("Error allocating resources for watermark!\n");
-        return;
-    }
-    int x, y, w, h;
-    w = game_res[0]*0.6;
-    w = w - (w % 96);
-    h = w/2;
-    x = (game_res[0] - w) / 2;
-    y = (game_res[1] - h) / 2;
-    int upscale = w/96;
-    CreateAnimatedSprite(watermark, x, y, w, h, "./assets/watermark_anim.png", "watermark", 12, upscale);
-}
-
 void StartGraphics(HWND hWnd){
     HDC hdc = GetDC(hWnd);
     hdcMem = CreateCompatibleDC(hdc);
@@ -372,9 +350,6 @@ void StartGraphics(HWND hWnd){
     ReleaseDC(hWnd, hdc);
     openGameFont();
     InitConsole();
-    if (drawWatermark){
-        setupWatermark();
-    }
 
     collisionColor = RGB(255, 0, 0);
     characterColor = RGB(0, 255, 0);
@@ -390,9 +365,18 @@ int game_paused = FALSE;
 int paused = FALSE;
 int paused_opt = 0;
 
-char *pauseMenuOptions[] = {"Resume Game", "Options", "Credits", "Quit Game", NULL};
+void resume_game(){
+    paused = FALSE;
+}
 
-void UIKeyDown(UINT key, HWND hWnd){
+void forceExit(){
+    PostMessage(mainWindow, WM_QUIT, 0, 0);
+}
+
+char *pauseMenuOptions[] = {"Resume Game", "Options", "Credits", "Back to Main Menu", "Quit Game", NULL};
+void (*pauseMenuFuncs[])() = {&resume_game, &openOptions, &showCredits, &ForceGameMenu, &forceExit};
+
+void UIKeyDown(UINT key){
     if (paused){
         if (key == VK_ESCAPE) {
             paused = FALSE;
@@ -409,16 +393,7 @@ void UIKeyDown(UINT key, HWND hWnd){
             }
         }
         if (key == VK_RETURN){
-            switch (paused_opt){
-                case 0: ;
-                    paused = FALSE;
-                    break;
-                case 3: ;
-                    PostMessage(hWnd, WM_QUIT, 0, 0);
-                    break;
-                default:
-                    break;
-            }
+            pauseMenuFuncs[paused_opt]();
             paused_opt = 0;
         }
         return;
@@ -439,7 +414,7 @@ void DrawPauseMenu(HDC hdcMem, RECT *rcPaint){
     SelectObject(hdcMem, TitleFont);
     SetBkMode(hdcMem, TRANSPARENT);
     SetTextAlign(hdcMem, TA_TOP | TA_CENTER);
-    SetTextColor(hdcMem, RGB(255, 255, 255));
+    SetTextColor(hdcMem, regular_text_color);
     char *title = "Sprayz";
     TextOut(hdcMem, game_res[0]/2, 0, title, strlen(title));
 
@@ -450,14 +425,14 @@ void DrawPauseMenu(HDC hdcMem, RECT *rcPaint){
     SelectObject(hdcMem, GameFont);
     while (pauseMenuOptions[curr_opt] != NULL){
         if (curr_opt == paused_opt){
-            SetTextColor(hdcMem, RGB(150, 150, 50));
+            SetTextColor(hdcMem, highlight_text_color);
         } else{
-            SetTextColor(hdcMem, RGB(50, 50, 50));
+            SetTextColor(hdcMem, undermined_text_color);
         }
         TextOut(hdcMem, game_res[0]/2, spacing * (curr_opt + 1) + top_margin, pauseMenuOptions[curr_opt], strlen(pauseMenuOptions[curr_opt]));
         curr_opt++;
     }
-    SetTextColor(hdcMem, RGB(20, 20, 20));
+    SetTextColor(hdcMem, ignore_text_color);
     SetTextAlign(hdcMem, TA_BOTTOM | TA_LEFT);
     TextOut(hdcMem, 0, game_res[1], gameVersion, strlen(gameVersion));
 }
@@ -514,36 +489,7 @@ void DrawPlayerDebug(HDC hdc){
     TextOut(hdc, midX, currY, forcesText, strlen(forcesText));
 }
 
-void Draw(HWND hWnd, int screen_width, int screen_height){
-    PAINTSTRUCT ps;
-    HDC hdcW = BeginPaint(hWnd, &ps);
-    RECT rcPaint;
-    rcPaint.top = 0;
-    rcPaint.left = 0;
-    rcPaint.bottom = game_res[1];
-    rcPaint.right = game_res[0];
-    FillRect(hdcMem, &rcPaint, CreateNewColorBrush(RGB(0, 0, 0))->brush);
-    
-    // BLACK BARS
-    if (resized_ticks > 0.01){
-        resized_ticks++;
-        if (resized_ticks > 5){
-            HBRUSH black_brush = CreateSolidBrush(RGB(0, 0, 0));
-            FillRect(hdcW, &ps.rcPaint, black_brush);
-            DeleteObject(black_brush);
-            resized_ticks = 0;
-        }
-    }
-
-    if (drawWatermark && watermark_timer < watermark_duration){
-        PaintSprite(hdcMem, watermark);
-        SetStretchBltMode(hdcW, HALFTONE);
-        SetBrushOrgEx(hdcW, 0, 0, NULL);
-        
-        StretchBlt(hdcW, offsetX, offsetY, closest_width, closest_height, hdcMem, 0, 0, game_res[0], game_res[1], SRCCOPY);
-        EndPaint(hWnd, &ps);
-        return;
-    }
+void DrawGame(){
     if (!paused){
         if (bg != NULL) PaintSprite(hdcMem, bg);
         PaintSpriteGroup(hdcMem, collisions);
@@ -556,17 +502,15 @@ void Draw(HWND hWnd, int screen_width, int screen_height){
         game_paused = FALSE;
         if (showDebug) DrawPlayerDebug(hdcMem);
     }else{
+        RECT rcPaint;
+        rcPaint.top = 0;
+        rcPaint.left = 0;
+        rcPaint.right = game_res[0];
+        rcPaint.bottom = game_res[1];
         DrawPauseMenu(hdcMem, &rcPaint);
     }
     // CONSOLE
     DrawConsoleIfNeeded(hdcMem);
-
-    // FIX FOR ARTIFACTS
-    SetStretchBltMode(hdcW, HALFTONE);
-    SetBrushOrgEx(hdcW, 0, 0, NULL);
-    
-    StretchBlt(hdcW, offsetX, offsetY, closest_width, closest_height, hdcMem, 0, 0, game_res[0], game_res[1], SRCCOPY);
-    EndPaint(hWnd, &ps);
 }
 
 // Action on window resize
@@ -605,15 +549,6 @@ void EndLastLevel(){
 }
 
 void Update(float dt){
-    if (drawWatermark && watermark_timer < watermark_duration){
-        if (GetFrame(watermark->brush->anim_group) < 31)UpdateAnimatedSprite(watermark->brush->anim_group, dt);
-        watermark_timer+=dt;
-        if (watermark_timer >= watermark_duration){
-            EraseSprite(watermark);
-            watermark = NULL;
-        }
-        return;
-    }
     UpdatePosition(dt, collisions);
     UpdateAnimatedSprites(collisions, dt);
     SpriteGroup *curr = redirects;
