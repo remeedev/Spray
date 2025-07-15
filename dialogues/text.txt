@@ -1,5 +1,5 @@
-./assets/player_header.png
+./assets/player/player_header.png
 ./assets/copheader.png
 ./assets/copbacker.png
 -
-2: Hola, user!
+1: Hola comadreja

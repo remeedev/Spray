@@ -325,6 +325,9 @@ void handleKeyConsole(UINT key){
             blip_pos = strlen(console_in);
         }
     }
+    if (key == VK_ESCAPE && console_on){
+        console_on = FALSE;
+    }
     if (!console_on) return;
     if (key == VK_RETURN){
         runCommand();

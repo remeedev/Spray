@@ -36,6 +36,7 @@ void startGameSystem(HWND hWnd, int screen_width, int screen_height){
     StartGraphics(hWnd);
     Resize(hWnd, screen_width, screen_height);
     LoadBrushes();
+
     if (watermarkShow){
         loadWatermark();
     }
@@ -49,7 +50,7 @@ void startGame(){
     SetPlayerPos(zero_pos);
     player_forces[0] = 0;
     player_forces[1] = 0;
-    loadLevel("./levels/dojo.txt");
+    loadLevel("./levels/particles.txt");
     paused = FALSE;
     in_level = TRUE;
 }

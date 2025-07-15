@@ -166,7 +166,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
             break;
         }
         gettimeofday(&end, NULL);
-        float dt = (end.tv_sec - start.tv_sec) + (end.tv_usec - start.tv_usec) / 1000000.0f;
+        float dt = (end.tv_sec - start.tv_sec) + (end.tv_usec - start.tv_usec) / 1000000.0f; // delta time calculated in seconds
         // Redraw
         dt = dt > 0.5 ? 0.5 : dt;
         updateEvent(dt);

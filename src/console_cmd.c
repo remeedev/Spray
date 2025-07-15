@@ -7,10 +7,11 @@
 #include "headers/movement.h"
 #include "headers/level_loader.h"
 #include "headers/npc.h"
+#include "headers/bicycle.h"
 
 typedef void (*cmdFunc)(int, char **);
 
-char *cmds[] = {"log", "get", "set", "clear", "game_ver", "quit_game", "list_commands", "toggle_debug", "setHarm", NULL};
+char *cmds[] = {"log", "get", "set", "clear", "game_ver", "quit_game", "list_commands", "toggle_debug", "setHarm", "setTime", NULL};
 
 void listCommands(int argc, char **argv){
     if (argc == 1){
@@ -73,14 +74,24 @@ void quitGame(int argc, char **argv){
     PostMessage(mainWindow, WM_QUIT, 0, 0);
 }
 
-float getFloatFromString(char * text){
-    float val = 0;
+double getDoubleFromString(char *text){
+    double val = 0;
     int dotWeight = 1;
     int pos = strlen(text) - 1;
     int power = 1;
+    int negative = FALSE;
     while (pos >= 0){
+        if (text[pos] == '-'){
+            negative = TRUE;
+            pos--;
+            continue;
+        }
         if (text[pos] == '.' || text[pos] == ','){
             dotWeight = power;
+            pos--;
+            continue;
+        }
+        if (text[pos] < '0' || text[pos] > '9'){
             pos--;
             continue;
         }
@@ -90,11 +101,18 @@ float getFloatFromString(char * text){
     }
     val/=dotWeight;
 
+    if (negative) val = -val;
+    return val;
+
+}
+
+float getFloatFromString(char * text){
+    float val = (float)getDoubleFromString(text);
     return val;
 }
 
-char *variables[] = {"f_gravity", "b_see_collisions", "r_collisionColor", "r_spriteColor", "b_showDebug", NULL};
-void *variableVal[] = {&gravity, &showCollisions, &collisionColor, &characterColor, &showDebug};
+char *variables[] = {"f_gravity", "b_see_collisions", "r_collisionColor", "r_spriteColor", "b_showDebug", "d_gametime", NULL};
+void *variableVal[] = {&gravity, &showCollisions, &collisionColor, &characterColor, &showDebug, &game_time};
 
 void getVar(int argc, char **argv){
     if (argc < 1){
@@ -108,7 +126,7 @@ void getVar(int argc, char **argv){
     if (strcmp(argv[0], "-a") == 0){
         int pos = 0;
         PrintToConsole("The following variables were discovered: \n");
-        PrintToConsole("TYPE  NAME  VALUE \n");
+        PrintToConsole("TYPE   NAME  VALUE \n");
         while (variables[pos] != NULL){
             char val[100];
             
@@ -118,17 +136,20 @@ void getVar(int argc, char **argv){
             }
             if (variables[pos][0] == 'b'){
                 sprintf(val, "%s", *((int *)variableVal[pos]) ? "TRUE" : "FALSE");
-                PrintToConsole("BOOL  ");
+                PrintToConsole("BOOL   ");
             }
             if (variables[pos][0] == 'f'){
                 sprintf(val, "%f", *((float *)variableVal[pos]));
-                PrintToConsole("FLOAT ");
+                PrintToConsole("FLOAT  ");
             }
             if (variables[pos][0] == 'r'){
                 COLORREF color_val = *((COLORREF *)variableVal[pos]);
-                printf("0x%08X\n", color_val);
                 sprintf(val, "%d %d %d", GetRValue(color_val), GetGValue(color_val), GetBValue(color_val));
-                PrintToConsole("COLOR ");
+                PrintToConsole("COLOR  ");
+            }
+            if (variables[pos][0] == 'd'){
+                sprintf(val, "%.2f", (double)(*(double *)variableVal[pos]));
+                PrintToConsole("DOUBLE ");
             }
             PrintToConsole(variables[pos]);
             PrintToConsole(" ");
@@ -178,6 +199,11 @@ void setVar(int argc, char **argv){
                 printf("Trying to create from: (%d, %d, %d)\n", r, g, b);
                 *((COLORREF *)(variableVal[pos])) = RGB(r, g, b);
                 printf("Done!\n");
+            }
+            if (argv[0][0] == 'd'){
+                if (argc < 2) return;
+                double val = getFloatFromString(argv[1]);
+                *((double *)variableVal[pos]) = val;
             }
             found = TRUE;
             PrintToConsole(variables[pos]);
@@ -231,5 +257,36 @@ void changeSpriteStatus(int argc, char **argv){
     changeHarmLevel(id, value);
 }
 
+void setTime(int argc, char **argv){
+    if (argc == 1){
+        if (strcmp(argv[0], "help") == 0){
+            PrintToConsole("This function sets the current time\n");
+            PrintToConsole("Usage:\n'setTime <time | midnight | morning>'\n");
+            return;
+        }
+    }
+    if (argc < 1){
+        PrintToConsole("Incorrect usage of function\nRun 'setTime help' to learn how to use it\n");
+        return;
+    }
+    int time_set = FALSE;
+    if (strcmp(argv[0], "midnight") == 0){
+        game_time = max_time / 2 - 50;
+        time_set = TRUE;
+    }
+    if (strcmp(argv[0], "morning") == 0 && !time_set){
+        game_time = 0;
+        time_set = TRUE;
+    }
+    if (!time_set){
+        game_time = getDoubleFromString(argv[0]);
+    }
+    char time_txt[10];
+    sprintf(time_txt, "%.2f", game_time);
+    PrintToConsole("Succesfully set game time to: ");
+    PrintToConsole(time_txt);
+    PrintToConsole("\n");
+}
+
 // Corresponding funcs
-cmdFunc funcs[] = {&logToConsole, &getVar, &setVar, &clearConsole, &printGameVersion, &quitGame, &listCommands, &fullDebug, &changeSpriteStatus};
+cmdFunc funcs[] = {&logToConsole, &getVar, &setVar, &clearConsole, &printGameVersion, &quitGame, &listCommands, &fullDebug, &changeSpriteStatus, &setTime};

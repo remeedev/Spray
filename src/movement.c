@@ -36,6 +36,9 @@ int talking = FALSE;
 
 float player_forces[] = {0, 750};
 
+// To f with the player
+float attackWait = 0.0f;
+
 int jump_direction = 0;
 int can_jump = FALSE;
 int grounded = FALSE;
@@ -302,7 +305,7 @@ void ChangeAnimationDirection(char *direction, Sprite *sprite){
 // Basic Update Function (player movement)
 void UpdatePosition(float dt, SpriteGroup* collisions){
     dt = (dt > 0.05f) ? 0.05f : dt;
-    UpdateAnimatedSprite(GetPlayerPtr()->brush->anim_group, dt);
+    if ( attackWait == 0 ) UpdateAnimatedSprite(GetPlayerPtr()->brush->anim_group, dt);
     if (lock_input){
         stun_time+=dt;
         if (stun_time >= max_stun){
@@ -343,10 +346,10 @@ void UpdatePosition(float dt, SpriteGroup* collisions){
 
     SetPlayerPos(curr_pos);
     curr_pos = get_transform_due(collisions, GetPlayerPtr(), &grounded);
-    if (attacking){
+    if (attacking || attackWait > 0){
         player_forces[0] = 0;
         ChangeAnimationNoDir("attacking", GetPlayerPtr());
-        if (GetFrame(GetPlayerPtr()->brush->anim_group) == 3){
+        if (GetFrame(GetPlayerPtr()->brush->anim_group) == 1 && attackWait == 0){
             char *direction = getDirectionSprite(GetPlayerPtr());
             RECT hurtBox;
             
@@ -367,6 +370,13 @@ void UpdatePosition(float dt, SpriteGroup* collisions){
             free(sprite_copy);
             free(direction);
             attacking = FALSE;
+            attackWait = 0.1;
+        }
+        if (attackWait > 0){
+            attackWait += dt;
+            if (attackWait > 0.4){
+                attackWait = 0;
+            }
         }
     }else{
         if (grounded){

@@ -142,6 +142,7 @@ void DrawAnimatedSprite(HDC hdc, AnimationGroup *animated_sprite, int x, int y){
             bf.BlendFlags = 0;
             bf.SourceConstantAlpha = 255;
             bf.AlphaFormat = AC_SRC_ALPHA;
+            bf_init = TRUE;
         }
         SIZE frame = curr_anim->frame_dimensions;
         int srcX = ((frame.cx/curr_anim->upscale)*curr_anim->curr_image)%bm.bmWidth;

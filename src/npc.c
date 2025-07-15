@@ -213,13 +213,23 @@ void clearSprites(){
     dead_npcs = NULL;
 }
 
+int set_rand = FALSE;
+
 void addToLoadedSprites(NPC *sprite){
+    if (!set_rand){
+        time_t stored_time = time(NULL);
+        set_rand = TRUE;
+        srand(stored_time);
+    }
     NPCGroup *new = (NPCGroup *)malloc(sizeof(NPCGroup));
+    if (new == NULL){
+        printf("Error allocating space for npc!\n");
+        return;
+    }
     new->npc = sprite;
     new->next = NULL;
     if (loaded_NPCs == NULL){
         loaded_NPCs = new;
-        srand(time(NULL));
     }else{
         NPCGroup *curr = loaded_NPCs;
         while (curr->next != NULL) curr = curr->next;
@@ -236,6 +246,11 @@ void loadEnemyNPC(char *path, int x, int y, int cx, int cy, int upscale){
     }
     fclose(file);
     Sprite *sprite = (Sprite *)malloc(sizeof(Sprite));
+
+    if (sprite == NULL){
+        printf("Error allocating space for enemy enemy!\n");
+        return;
+    }
 
     CreateAnimatedSprite(sprite, x, y, cx, cy, still_left, "still_left", 10, upscale);
     free(still_left);
@@ -258,6 +273,12 @@ void loadEnemyNPC(char *path, int x, int y, int cx, int cy, int upscale){
     free(attack_left);
 
     NPC *newNPC = (NPC *)malloc(sizeof(NPC));
+
+    if (newNPC == NULL){
+        printf("Error allocating space for the npc!\n");
+        return;
+    }
+
     newNPC->forces[0] = 0;
     newNPC->forces[1] = 0;
     newNPC->still = 0.0f;
@@ -339,6 +360,10 @@ void doShortAttack(Sprite *HurtBox, int damage){
     NPCGroup *prev = NULL;
     while(curr != NULL){
         Sprite *sprite = curr->npc->npcSprite;
+        if (curr->npc->friendly == TRUE) {
+            curr = curr->next;
+            continue;
+        }
         if (GetCollision(sprite, NULL, HurtBox) > 0){
             curr->npc->npcSprite->health -= damage;
             if (curr->npc->npcSprite->health <= 0){

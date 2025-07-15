@@ -1,3 +1,6 @@
+#include "drawing.h"
+#include <windows.h>
+
 #ifndef LevelLoader
 #define LevelLoader
 

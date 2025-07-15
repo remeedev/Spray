@@ -324,14 +324,14 @@ Sprite *player = NULL;
 void InitPlayer(){
     if (player == NULL){
         player = (Sprite *)malloc(sizeof(Sprite));
-        CreateAnimatedSprite(player, 0, 0, 48*2, 64*2, "./assets/walking_right.png", "walking_right", 10, 8);
-        AddToAnimationGroup(player->brush->anim_group, "./assets/walking_left.png", "walking_left", 48*2, 64*2, 10, 8);
-        AddToAnimationGroup(player->brush->anim_group, "./assets/attacking_right.png", "attacking_right", 48*2, 64*2, 10, 8);
-        AddToAnimationGroup(player->brush->anim_group, "./assets/attacking_left.png", "attacking_left", 48*2, 64*2, 10, 8);
-        AddToAnimationGroup(player->brush->anim_group, "./assets/still_right.png", "still_right", 48*2, 64*2, 0, 8);
-        AddToAnimationGroup(player->brush->anim_group, "./assets/still_left.png", "still_left", 48*2, 64*2, 0, 8);
-        AddToAnimationGroup(player->brush->anim_group, "./assets/falling_right.png", "falling_right", 48*2, 64*2, 0, 8);
-        AddToAnimationGroup(player->brush->anim_group, "./assets/falling_left.png", "falling_left", 48*2, 64*2, 0, 8);
+        CreateAnimatedSprite(player, 0, 0, 48*2, 64*2, "./assets/player/walking_right.png", "walking_right", 10, 8);
+        AddToAnimationGroup(player->brush->anim_group, "./assets/player/walking_left.png", "walking_left", 48*2, 64*2, 10, 8);
+        AddToAnimationGroup(player->brush->anim_group, "./assets/player/attacking_right.png", "attacking_right", 48*2, 64*2, 10, 8);
+        AddToAnimationGroup(player->brush->anim_group, "./assets/player/attacking_left.png", "attacking_left", 48*2, 64*2, 10, 8);
+        AddToAnimationGroup(player->brush->anim_group, "./assets/player/still_right.png", "still_right", 48*2, 64*2, 0, 8);
+        AddToAnimationGroup(player->brush->anim_group, "./assets/player/still_left.png", "still_left", 48*2, 64*2, 0, 8);
+        AddToAnimationGroup(player->brush->anim_group, "./assets/player/falling_right.png", "falling_right", 48*2, 64*2, 0, 8);
+        AddToAnimationGroup(player->brush->anim_group, "./assets/player/falling_left.png", "falling_left", 48*2, 64*2, 0, 8);
         player->damage = 2;
     }
 }

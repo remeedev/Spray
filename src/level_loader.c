@@ -9,6 +9,7 @@
 #include "headers/generalvars.h"
 #include "headers/console.h"
 #include "headers/handler.h"
+#include "headers/bicycle.h"
 
 // Admin Variables
 int showCollisions = FALSE;
@@ -340,6 +341,7 @@ void loadLevel(char *level_name){
         }
         fclose(level_raw);
     }
+    printf("Loaded!\n");
 }
 
 void StartGraphics(HWND hWnd){
@@ -350,6 +352,7 @@ void StartGraphics(HWND hWnd){
     ReleaseDC(hWnd, hdc);
     openGameFont();
     InitConsole();
+    startDayCycle(hWnd);
 
     collisionColor = RGB(255, 0, 0);
     characterColor = RGB(0, 255, 0);
@@ -399,7 +402,7 @@ void UIKeyDown(UINT key){
         return;
     }
     if (key == VK_ESCAPE){
-        if (skip_conversation() == 0){
+        if (skip_conversation() == 0 && console_on == FALSE) { // double assignment to close console and pause
             paused = TRUE;
         }
     }
@@ -491,6 +494,7 @@ void DrawPlayerDebug(HDC hdc){
 
 void DrawGame(){
     if (!paused){
+        drawDayCycle(hdcMem);
         if (bg != NULL) PaintSprite(hdcMem, bg);
         PaintSpriteGroup(hdcMem, collisions);
         // Shows redirect collision boxes
@@ -551,6 +555,7 @@ void EndLastLevel(){
 void Update(float dt){
     UpdatePosition(dt, collisions);
     UpdateAnimatedSprites(collisions, dt);
+    updateDayCycle(dt);
     SpriteGroup *curr = redirects;
     RedirectItem *curr_redirect = redirect_links;
     int redirected = FALSE;
@@ -601,6 +606,8 @@ void onEnd(){
     deleteBrushes();
     deleteFont();
     DeleteConsoleIfNeeded();
+    endDayCycle();
+
     if (hdcMem && hbmOld) SelectObject(hdcMem, hbmOld);
     if (hdcMem) DeleteDC(hdcMem);
     if (hbmMem) DeleteObject(hbmMem);
