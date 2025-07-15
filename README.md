@@ -6,7 +6,7 @@
 
 ## Active
 
-- Loading Screen
+- Console
 
 ## TODO
 
@@ -17,9 +17,9 @@
 - Level Art
 - Level Creator
 - Save level data
+- Loading Screen
 
 ## DONE
-- ~~Console~~
 - ~~Pause Menu~~
 - ~~NPCs~~
 - ~~Dialogue~~
