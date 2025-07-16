@@ -75,11 +75,7 @@ void DrawConsoleIfNeeded(HDC hdcMem){
     int fontHeight = tm.tmHeight;
     int spacing = 4;
 
-    RECT background_rect;
-    background_rect.top = 0;
-    background_rect.left = 0;
-    background_rect.right = 128 * fontWidth + spacing;
-    background_rect.bottom = 10 * (fontHeight + spacing);
+    RECT background_rect = {0, 0, 128 * fontWidth + spacing, 10 * (fontHeight + spacing)};
     FillRect(hdcMem, &background_rect, CreateNewColorBrush(RGB(0, 0, 0))->brush);
 
     RECT input_rect;

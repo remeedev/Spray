@@ -49,6 +49,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) {
     switch (msg) {
         case WM_CREATE: ;
             // Screen buffering fix
+            time_t stored_time = time(NULL);
+            srand(stored_time);
             startGameSystem(hWnd, screen_width, screen_height);
             break;
         case WM_SIZE:

@@ -213,14 +213,7 @@ void clearSprites(){
     dead_npcs = NULL;
 }
 
-int set_rand = FALSE;
-
 void addToLoadedSprites(NPC *sprite){
-    if (!set_rand){
-        time_t stored_time = time(NULL);
-        set_rand = TRUE;
-        srand(stored_time);
-    }
     NPCGroup *new = (NPCGroup *)malloc(sizeof(NPCGroup));
     if (new == NULL){
         printf("Error allocating space for npc!\n");

@@ -6,6 +6,7 @@
 #include "headers/level_loader.h"
 #include "headers/console.h"
 #include "headers/generalvars.h"
+#include "headers/particles.h"
 
 // WATERMARK NECESSARY DATA
 int watermarkShow = TRUE;

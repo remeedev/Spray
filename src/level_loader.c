@@ -10,6 +10,7 @@
 #include "headers/console.h"
 #include "headers/handler.h"
 #include "headers/bicycle.h"
+#include "headers/particles.h"
 
 // Admin Variables
 int showCollisions = FALSE;
@@ -341,7 +342,6 @@ void loadLevel(char *level_name){
         }
         fclose(level_raw);
     }
-    printf("Loaded!\n");
 }
 
 void StartGraphics(HWND hWnd){
@@ -505,6 +505,7 @@ void DrawGame(){
         if (talking) drawAllNPCs(hdcMem);
         game_paused = FALSE;
         if (showDebug) DrawPlayerDebug(hdcMem);
+        drawParticles(hdcMem);
     }else{
         RECT rcPaint;
         rcPaint.top = 0;
@@ -554,6 +555,7 @@ void EndLastLevel(){
 
 void Update(float dt){
     UpdatePosition(dt, collisions);
+    updateParticles(dt);
     UpdateAnimatedSprites(collisions, dt);
     updateDayCycle(dt);
     SpriteGroup *curr = redirects;
@@ -607,6 +609,7 @@ void onEnd(){
     deleteFont();
     DeleteConsoleIfNeeded();
     endDayCycle();
+    endParticles();
 
     if (hdcMem && hbmOld) SelectObject(hdcMem, hbmOld);
     if (hdcMem) DeleteDC(hdcMem);

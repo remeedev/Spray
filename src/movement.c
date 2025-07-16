@@ -3,6 +3,7 @@
 #include "headers/npc.h"
 #include "headers/console.h"
 #include "headers/generalvars.h"
+#include "headers/particles.h"
 
 #include <stdio.h>
 
@@ -302,6 +303,20 @@ void ChangeAnimationDirection(char *direction, Sprite *sprite){
     free(base_name);
 }
 
+void particlesAtFeet(){
+    POINT pos = {GetPlayerPos().x + (GetPlayerSize().cx/2), GetPlayerPos().y + GetPlayerSize().cy};
+    SIZE size = {5, 5};
+    float lifespan = 0.2;
+    float particleLifespan = 0.1;
+    int spawnRadius = 5;
+    int density = 5;
+    int gravityApplied = FALSE;
+    int moveAway = TRUE;
+    COLORREF color = RGB(230, 128, 0);
+    int smudge = 100;
+    createParticles(pos, size, lifespan, particleLifespan, spawnRadius, density, gravityApplied, moveAway, color, smudge);
+}
+
 // Basic Update Function (player movement)
 void UpdatePosition(float dt, SpriteGroup* collisions){
     dt = (dt > 0.05f) ? 0.05f : dt;
@@ -382,12 +397,14 @@ void UpdatePosition(float dt, SpriteGroup* collisions){
         if (grounded){
             player_forces[1] = 0;
             if (a || d){
+                particlesAtFeet();
                 ChangeAnimationNoDir("walking", GetPlayerPtr());
             }else{
                 ChangeAnimationNoDir("still", GetPlayerPtr());
             }
         }else{
             if (player_forces[1] > 0){
+                particlesAtFeet();
                 ChangeAnimationNoDir("falling", GetPlayerPtr());
             }
         }

@@ -1,3 +1,5 @@
 BGI="./assets/map.png",8
 COL=-40,592,1360,128,"./assets/stone_floor.png",8
 COL=576,460,128,136,"./assets/oil_drum.png",8
+ENE=670,0,96,128,"./assets/cop",8
+CNV="./dialogues/text.txt"

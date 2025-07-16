@@ -2,3 +2,5 @@
 COL=-40,592,1360,128,"./assets/stone_floor.png",8
 REF=1270,300,10,292,"./levels/dojo.txt"
 COL=0,308,125,25,#149,104,42#
+ENE=670,0,96,128,"./assets/cop",8
+CNV="./dialogues/text.txt"
