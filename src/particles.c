@@ -6,7 +6,7 @@
 
 float particleSpeed = 100.0f;
 float particleGravity = 120.0f;
-int maxParticleCount = 256;
+int maxParticleCount = 640;
 int currentParticleCount = 0;
 
 typedef struct particle {
@@ -122,8 +122,6 @@ void updateParticles(float dt){
             POINT position;
             position.x = rand()%(curr->spawnRadius * 2) - curr->spawnRadius + curr->pos.x;
             position.y = rand()%(curr->spawnRadius * 2) - curr->spawnRadius + curr->pos.y;
-            if (position.x < 0 || position.x > game_res[0]) position.x = 100;
-            if (position.y < 0 || position.y > game_res[1]) position.y = 100;
             new_particle->obj = (Sprite *)malloc(sizeof(Sprite));
             if (new_particle->obj == NULL){
                 free(new_particle);
@@ -143,12 +141,13 @@ void updateParticles(float dt){
                 }else{
                     slope = 0;
                 }
+                int localParticleSpeed = curr->moveAway == TRUE ? particleSpeed : curr->moveAway;
                 if (abs(relativeX) > abs(relativeY)) {
-                    new_particle->forces[0] = relativeX >= 0 ? particleSpeed : -particleSpeed;
-                    new_particle->forces[1] = relativeY >= 0 ?  slope*particleSpeed : -slope*particleSpeed;
+                    new_particle->forces[0] = relativeX >= 0 ? localParticleSpeed : -localParticleSpeed;
+                    new_particle->forces[1] = relativeY >= 0 ?  slope*localParticleSpeed : -slope*localParticleSpeed;
                 }else{
-                    new_particle->forces[0] = relativeX >= 0 ?  slope*particleSpeed : -slope*particleSpeed;
-                    new_particle->forces[1] = relativeY >= 0 ? particleSpeed : -particleSpeed;
+                    new_particle->forces[0] = relativeX >= 0 ?  slope*localParticleSpeed : -slope*localParticleSpeed;
+                    new_particle->forces[1] = relativeY >= 0 ? localParticleSpeed : -localParticleSpeed;
                 }
             }
 

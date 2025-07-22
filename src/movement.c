@@ -4,11 +4,12 @@
 #include "headers/console.h"
 #include "headers/generalvars.h"
 #include "headers/particles.h"
+#include "headers/throwables.h"
 
 #include <stdio.h>
 
 // VARIABLE DEFINITION
-float player_speed = 1000.0f;
+float player_speed = 800.0f;
 float jump_force = 1350.0f;
 
 int attacking = FALSE;
@@ -57,6 +58,7 @@ void HandleKeyDown(UINT key){
     if (key == 'A') a = 1;
     if (key == 'S') s = 1;
     if (key == 'D') d = 1;
+    if (key == 'G') startGrenade();
     if (key == VK_SPACE){
         if ((lock_input == FALSE && (can_jump || time_since < forgive_period)) || debug){
             if (!grounded) {
@@ -79,6 +81,7 @@ void HandleKeyUp(UINT key){
     if (key == 'A') a = 0;
     if (key == 'S') s = 0;
     if (key == 'D') d = 0;
+    if (key == 'G') throwGrenade();
 }
 // ======== controls end ===========
 
@@ -303,6 +306,7 @@ void ChangeAnimationDirection(char *direction, Sprite *sprite){
     free(base_name);
 }
 
+// unused for a while
 void particlesAtFeet(){
     POINT pos = {GetPlayerPos().x + (GetPlayerSize().cx/2), GetPlayerPos().y + GetPlayerSize().cy};
     SIZE size = {5, 5};
@@ -397,14 +401,12 @@ void UpdatePosition(float dt, SpriteGroup* collisions){
         if (grounded){
             player_forces[1] = 0;
             if (a || d){
-                particlesAtFeet();
                 ChangeAnimationNoDir("walking", GetPlayerPtr());
             }else{
                 ChangeAnimationNoDir("still", GetPlayerPtr());
             }
         }else{
             if (player_forces[1] > 0){
-                particlesAtFeet();
                 ChangeAnimationNoDir("falling", GetPlayerPtr());
             }
         }

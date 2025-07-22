@@ -11,6 +11,7 @@
 #include "headers/handler.h"
 #include "headers/bicycle.h"
 #include "headers/particles.h"
+#include "headers/throwables.h"
 
 // Admin Variables
 int showCollisions = FALSE;
@@ -505,6 +506,7 @@ void DrawGame(){
         if (talking) drawAllNPCs(hdcMem);
         game_paused = FALSE;
         if (showDebug) DrawPlayerDebug(hdcMem);
+        drawGrenades(hdcMem);
         drawParticles(hdcMem);
     }else{
         RECT rcPaint;
@@ -554,6 +556,7 @@ void EndLastLevel(){
 }
 
 void Update(float dt){
+    updateGrenades(dt, collisions);
     UpdatePosition(dt, collisions);
     updateParticles(dt);
     UpdateAnimatedSprites(collisions, dt);
