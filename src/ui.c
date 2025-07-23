@@ -34,10 +34,14 @@ void startUI(){
 void drawUI(HDC hdc){
     int playerHealth = GetPlayerPtr()->health;
     int maxHealth = GetPlayerPtr()->maxHealth;
+    float currHealthPerc = ((float) playerHealth)/((float) maxHealth);
+    int healthHeight = (int)(currHealthPerc*(background_rect.bottom - background_rect.top));
     FillRect(hdc, &background_rect, CreateNewColorBrush(RGB(128, 128, 128))->brush);
-    RECT healthRect = {background_rect.left, background_rect.top, background_rect.right, background_rect.bottom};
-    COLORREF health_color = RGB(150, 0, 0);
-    FillRect(hdc, &background_rect, CreateNewColorBrush(health_color)->brush);
+    RECT healthRect = {background_rect.left, background_rect.bottom - healthHeight, background_rect.right, background_rect.bottom};
+    int red_tone = 150;
+    int blood_brightness = (255-red_tone) * (-currHealthPerc + 1);
+    COLORREF health_color = RGB(150+blood_brightness, blood_brightness, blood_brightness);
+    FillRect(hdc, &healthRect, CreateNewColorBrush(health_color)->brush);
     PaintSprite(hdc, healthJar);
     PaintSprite(hdc, sprayCan);
 }

@@ -332,6 +332,8 @@ void InitPlayer(){
         AddToAnimationGroup(player->brush->anim_group, "./assets/player/still_left.png", "still_left", 48*2, 64*2, 0, 8);
         AddToAnimationGroup(player->brush->anim_group, "./assets/player/falling_right.png", "falling_right", 48*2, 64*2, 0, 8);
         AddToAnimationGroup(player->brush->anim_group, "./assets/player/falling_left.png", "falling_left", 48*2, 64*2, 0, 8);
+        player->maxHealth = 10;
+        player->health = 10;
         player->damage = 2;
     }
 }

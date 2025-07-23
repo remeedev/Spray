@@ -23,7 +23,7 @@ typedef struct conversation {
 
 typedef struct NPC {
     Sprite* npcSprite;
-    int friendly, targetX, talking, talked;
+    int friendly, targetX, talking, talked, didDamage;
     float forces[2];
     float still, stillTimer;
     float hitTime, hitTimeMax;
@@ -284,6 +284,7 @@ void loadEnemyNPC(char *path, int x, int y, int cx, int cy, int upscale){
     newNPC->talked = TRUE;
     newNPC->hitTime = 1.5f;
     newNPC->hitTimeMax = 1.5f;
+    newNPC->didDamage = FALSE;
     addToLoadedSprites(newNPC);
 }
 
@@ -323,6 +324,7 @@ void loadFriendlyNPC(char *path, int x, int y, int cx, int cy, int upscale){
     newNPC->talked = TRUE;
     newNPC->hitTime = 1.5f;
     newNPC->hitTimeMax = 1.5f;
+    newNPC->didDamage = FALSE;
     addToLoadedSprites(newNPC);
 }
 
@@ -605,6 +607,14 @@ void updateNPCs(SpriteGroup *collisions, float dt){
             ChangeAnimationDirection(GetPlayerPos().x < selfObj->pos.x ? "left" : "right", selfObj);
             if (curr->npc->talked){
                 ChangeAnimationNoDir("attack", selfObj);
+                if (GetFrame(selfObj->brush->anim_group) == 0) curr->npc->didDamage = FALSE;
+                if (GetFrame(selfObj->brush->anim_group) == 2 && curr->npc->didDamage == FALSE){
+                    curr->npc->didDamage = TRUE;
+                    GetPlayerPtr()->health -= selfObj->damage;
+                    if (GetPlayerPtr()->health <= 0){
+                        GetPlayerPtr()->health = GetPlayerPtr()->maxHealth;
+                    }
+                }
             }
         }else{
             // RANDOMIZED MOVEMENT
