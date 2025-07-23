@@ -12,6 +12,7 @@
 #include "headers/bicycle.h"
 #include "headers/particles.h"
 #include "headers/throwables.h"
+#include "headers/ui.h"
 
 // Admin Variables
 int showCollisions = FALSE;
@@ -353,6 +354,7 @@ void StartGraphics(HWND hWnd){
     ReleaseDC(hWnd, hdc);
     openGameFont();
     InitConsole();
+    startUI();
     startDayCycle(hWnd);
 
     collisionColor = RGB(255, 0, 0);
@@ -508,6 +510,7 @@ void DrawGame(){
         if (showDebug) DrawPlayerDebug(hdcMem);
         drawGrenades(hdcMem);
         drawParticles(hdcMem);
+        drawUI(hdcMem);
     }else{
         RECT rcPaint;
         rcPaint.top = 0;
@@ -612,6 +615,7 @@ void onEnd(){
     deleteFont();
     DeleteConsoleIfNeeded();
     endDayCycle();
+    endUI();
     endParticles();
 
     if (hdcMem && hbmOld) SelectObject(hdcMem, hbmOld);
