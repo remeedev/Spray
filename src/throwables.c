@@ -149,6 +149,24 @@ void updateGrenades(float dt, SpriteGroup* collisions){
             curr->obj->next->sprite->pos.y = yPos + label_margin_top;
             curr->obj->next->sprite->pos.x = xPos;
         }else{
+            int grounded = FALSE;
+            POINT new_pos = get_transform_due(collisions, curr->obj->sprite, &grounded);
+
+            if (!grounded){
+                curr->forces[1] += gravity*dt;
+            }else{
+                curr->forces[1] = - (curr->forces[1] * 0.4); // grenade bounce
+                curr->forces[0] = curr->forces[0] * 0.4; // friction
+                if (abs(curr->forces[1]) < 10 && curr->forces[1] < 0) curr->forces[1] = 0;
+            }
+
+            if (new_pos.x != curr->obj->sprite->pos.x) curr->forces[0] = - (curr->forces[0] * 0.4); // bounce off walls
+
+            curr->obj->sprite->pos.x = new_pos.x;
+            curr->obj->sprite->pos.y = new_pos.y;
+            curr->obj->next->sprite->pos.x = new_pos.x;
+            curr->obj->next->sprite->pos.y = new_pos.y + label_margin_top;
+            
             curr->obj->sprite->pos.x += curr->forces[0]*dt;
             curr->obj->sprite->pos.y += curr->forces[1]*dt;
             curr->obj->next->sprite->pos.y += curr->forces[0]*dt;
@@ -159,22 +177,6 @@ void updateGrenades(float dt, SpriteGroup* collisions){
                 curr->forces[0] += curr->forces[0] > 0 ? -1 : 1;
                 if (curr->forces[0] > 0 && prevForce < 0 || curr->forces[0] < 0 && prevForce > 0) curr->forces[0] = 0;
             }
-
-            int grounded = FALSE;
-            POINT new_pos = get_transform_due(collisions, curr->obj->sprite, &grounded);
-
-            if (!grounded){
-                curr->forces[1] += gravity*dt;
-            }else{
-                curr->forces[1] = - (curr->forces[1] * 0.4); // grenade bounce
-                if (abs(curr->forces[1]) < 10 && curr->forces[1] < 0) curr->forces[1] = 0;
-            }
-
-            if (new_pos.x != curr->obj->sprite->pos.x) curr->forces[0] = - (curr->forces[0] * 0.4); // bounce off walls
-            curr->obj->sprite->pos.x = new_pos.x;
-            curr->obj->sprite->pos.y = new_pos.y;
-            curr->obj->next->sprite->pos.x = new_pos.x;
-            curr->obj->next->sprite->pos.y = new_pos.y + label_margin_top;
         }
         prev = curr;
         curr = curr->next;
