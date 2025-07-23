@@ -1,6 +1,7 @@
 #include "headers/particles.h"
 #include "headers/drawing.h"
 #include "headers/movement.h"
+#include "headers/level_loader.h"
 
 #include <windows.h>
 #include <stdio.h>
@@ -149,6 +150,17 @@ void updateGrenades(float dt, SpriteGroup* collisions){
             curr->obj->next->sprite->pos.y = yPos + label_margin_top;
             curr->obj->next->sprite->pos.x = xPos;
         }else{
+            curr->obj->sprite->pos.x += curr->forces[0]*dt;
+            curr->obj->sprite->pos.y += curr->forces[1]*dt;
+            curr->obj->next->sprite->pos.y += curr->forces[0]*dt;
+            curr->obj->next->sprite->pos.x += curr->forces[1]*dt;
+
+            if (curr->forces[0] != 0){ // """Air resistance"""
+                int prevForce = (int) (curr->forces[0]);
+                curr->forces[0] += curr->forces[0] > 0 ? -1 : 1;
+                if (curr->forces[0] > 0 && prevForce < 0 || curr->forces[0] < 0 && prevForce > 0) curr->forces[0] = 0;
+            }
+
             int grounded = FALSE;
             POINT new_pos = get_transform_due(collisions, curr->obj->sprite, &grounded);
 
@@ -160,22 +172,13 @@ void updateGrenades(float dt, SpriteGroup* collisions){
                 if (abs(curr->forces[1]) < 10 && curr->forces[1] < 0) curr->forces[1] = 0;
             }
 
-            if (new_pos.x != curr->obj->sprite->pos.x) curr->forces[0] = - (curr->forces[0] * 0.4); // bounce off walls
+            if (new_pos.x != curr->obj->sprite->pos.x || new_pos.x < 0 || new_pos.x >= game_res[0]) curr->forces[0] = - (curr->forces[0] * 0.4); // bounce off walls
 
-            curr->obj->sprite->pos.x = new_pos.x;
-            curr->obj->sprite->pos.y = new_pos.y;
-            curr->obj->next->sprite->pos.x = new_pos.x;
-            curr->obj->next->sprite->pos.y = new_pos.y + label_margin_top;
-            
-            curr->obj->sprite->pos.x += curr->forces[0]*dt;
-            curr->obj->sprite->pos.y += curr->forces[1]*dt;
-            curr->obj->next->sprite->pos.y += curr->forces[0]*dt;
-            curr->obj->next->sprite->pos.x += curr->forces[1]*dt;
-
-            if (curr->forces[0] != 0){ // """Air resistance"""
-                int prevForce = (int) (curr->forces[0]);
-                curr->forces[0] += curr->forces[0] > 0 ? -1 : 1;
-                if (curr->forces[0] > 0 && prevForce < 0 || curr->forces[0] < 0 && prevForce > 0) curr->forces[0] = 0;
+            if (abs(curr->obj->sprite->pos.x - new_pos.x) < 20 && abs(curr->obj->sprite->pos.y - new_pos.y) < 20){ // Evade big moves / wrapping around map / falling from world
+                curr->obj->sprite->pos.x = new_pos.x;
+                curr->obj->sprite->pos.y = new_pos.y;
+                curr->obj->next->sprite->pos.x = new_pos.x;
+                curr->obj->next->sprite->pos.y = new_pos.y + label_margin_top;
             }
         }
         prev = curr;
