@@ -2,13 +2,17 @@
 #include "headers/drawing.h"
 #include "headers/movement.h"
 #include "headers/level_loader.h"
+#include "headers/npc.h"
 
 #include <windows.h>
 #include <stdio.h>
+#include <math.h>
 
 #define COLOR_COUNT 8
 #define COOK_TIME 2.0
 #define COOK_ERROR 5.0
+
+int grenade_count = 3;
 
 typedef struct grenade {
     float cook_time, alive_time;
@@ -28,11 +32,15 @@ SIZE labelSize = {10, 7};
 COLORREF canColor = RGB(128, 128, 128);
 SIZE grenadeSize = {10, 20};
 float throwSpeed = 800.0f;
+int grenadeDamage = 8;
+int explodeRadius = 350;
 
 int label_margin_top = 5;
 
 void startGrenade(){
     grenade *currentGrenade = grenadeObj;
+    if (grenade_count == 0)return;
+    grenade_count -= 1;
     while (currentGrenade != NULL){
         if (currentGrenade->thrown == FALSE){
             return;
@@ -115,6 +123,17 @@ void throwGrenade(){
     }
 }
 
+void doDamage(Sprite *grenade){
+    POINT position = grenade->pos;
+    doExplosiveDamage(position, explodeRadius, grenadeDamage);
+    float distance = distToPlayer(grenade);
+    if (distance < explodeRadius){
+        float distance_as_percentage = ((float)distance)/((float)explodeRadius);
+        int total_damage = (int) round(cos(distance_as_percentage * (3.14159265/2.0)) * grenadeDamage);
+        GetPlayerPtr()->health -= total_damage;
+    }
+}
+
 void updateGrenades(float dt, SpriteGroup* collisions){
     grenade *curr = grenadeObj;
     grenade *prev = NULL;
@@ -124,6 +143,7 @@ void updateGrenades(float dt, SpriteGroup* collisions){
             grenade *tmp_del = curr;
             SIZE explodeSize = {50, 50};
             createParticles(curr->obj->sprite->pos, explodeSize, 0.2, 0.1, 10, 50, FALSE, 500, curr->color, 50);
+            doDamage(curr->obj->sprite);
             curr = curr->next;
             DeleteSpriteGroup(tmp_del->obj);
             free(tmp_del);
@@ -174,7 +194,8 @@ void updateGrenades(float dt, SpriteGroup* collisions){
 
             if (new_pos.x != curr->obj->sprite->pos.x || new_pos.x < 0 || new_pos.x >= game_res[0]) curr->forces[0] = - (curr->forces[0] * 0.4); // bounce off walls
 
-            if (abs(curr->obj->sprite->pos.x - new_pos.x) < 20 && abs(curr->obj->sprite->pos.y - new_pos.y) < 20){ // Evade big moves / wrapping around map / falling from world
+            int maxMovement = 100;
+            if (abs(curr->obj->sprite->pos.x - new_pos.x) < maxMovement && abs(curr->obj->sprite->pos.y - new_pos.y) < maxMovement){ // Evade big moves / wrapping around map / falling from world
                 curr->obj->sprite->pos.x = new_pos.x;
                 curr->obj->sprite->pos.y = new_pos.y;
                 curr->obj->next->sprite->pos.x = new_pos.x;

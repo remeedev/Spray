@@ -1,6 +1,7 @@
 #include "headers/drawing.h"
 #include "headers/level_loader.h"
 #include "headers/generalvars.h"
+#include "headers/throwables.h"
 
 #include <windows.h>
 #include <stdio.h>
@@ -8,6 +9,7 @@
 Sprite *healthJar = NULL;
 Sprite *sprayCan = NULL;
 RECT background_rect = {0, 0, 0, 0};
+POINT grenade_text;
 
 void startUI(){
     healthJar = (Sprite *)malloc(sizeof( Sprite ));
@@ -29,6 +31,8 @@ void startUI(){
     background_rect.bottom = background_rect.top + AssetSize.cy - (3 * upscale);
     background_rect.right = background_rect.left + AssetSize.cx - (4 * upscale);
     CreateImgSprite(sprayCan, game_res[0] - margin - AssetSize.cx, margin, AssetSize.cx, AssetSize.cy, "./assets/ui/spray_can.png", 4);
+    grenade_text.x = game_res[0] - margin - AssetSize.cx;
+    grenade_text.y = margin + (int)(((float)AssetSize.cy)*(3.0/4.0));
 }
 
 void drawUI(HDC hdc){
@@ -43,6 +47,13 @@ void drawUI(HDC hdc){
     COLORREF health_color = RGB(150+blood_brightness, blood_brightness, blood_brightness);
     FillRect(hdc, &healthRect, CreateNewColorBrush(health_color)->brush);
     PaintSprite(hdc, healthJar);
+    char count_text[5];
+    sprintf(count_text, "%d", grenade_count);
+    SelectObject(hdc, GameFont);
+    SetTextAlign(hdc, TA_RIGHT | TA_BOTTOM);
+    SetTextColor(hdc, regular_text_color);
+    SetBkMode(hdc, TRANSPARENT);
+    TextOut(hdc, grenade_text.x, grenade_text.y, count_text, strlen(count_text));
     PaintSprite(hdc, sprayCan);
 }
 

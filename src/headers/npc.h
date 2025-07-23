@@ -19,8 +19,12 @@ void clearSprites();
 
 void updateNPCs(SpriteGroup *collisions);
 
+// for grenades
+int distToPlayer(Sprite *sprite);
+
 // DAMAGE SECTION
 void doShortAttack(Sprite *HurtBox, int damage);
+void doExplosiveDamage(POINT center, int radius, int damage);
 
 int changeHarmLevel(int indexFrom1, int value);
 

@@ -350,6 +350,40 @@ void drawTextHUD(HDC hdc, int x, int y, char **texts){
 
 }
 
+NPCGroup *killNPC(NPCGroup *prev, NPCGroup *curr){
+    if (curr == NULL){
+        curr = prev->next;
+    }
+    // Create the dead body
+    Sprite *dead_npc = (Sprite *)malloc(sizeof(Sprite));
+    POINT pos = curr->npc->npcSprite->pos;
+    SIZE size = curr->npc->npcSprite->size;
+    CreateAnimatedSprite(dead_npc, pos.x, pos.y, size.cx, size.cy, "./assets/dead_spray.png", "basic", 24, 8);
+    SpriteGroup *npcWrapper = (SpriteGroup *)malloc(sizeof(SpriteGroup));
+    npcWrapper->sprite = dead_npc;
+    npcWrapper->next = NULL;
+    if (dead_npcs == NULL){
+        dead_npcs = npcWrapper;
+    }else{
+        SpriteGroup *tmp_sg = dead_npcs;
+        while (tmp_sg->next != NULL)tmp_sg = tmp_sg->next;
+        tmp_sg->next = npcWrapper;
+    }
+
+    NPCGroup *tmp = curr->next;
+    EraseSprite(curr->npc->npcSprite);
+    if (curr->npc->conv != NULL) unloadConversation(curr->npc->conv);
+    free(curr->npc);
+    free(curr);
+    curr = tmp;
+    if (prev == NULL) {
+        loaded_NPCs = curr;
+    }else{
+        prev->next = tmp;
+    }
+    return curr;
+}
+
 void doShortAttack(Sprite *HurtBox, int damage){
     NPCGroup *curr = loaded_NPCs;
     NPCGroup *prev = NULL;
@@ -362,34 +396,7 @@ void doShortAttack(Sprite *HurtBox, int damage){
         if (GetCollision(sprite, NULL, HurtBox) > 0){
             curr->npc->npcSprite->health -= damage;
             if (curr->npc->npcSprite->health <= 0){
-
-                // Create the dead body
-                Sprite *dead_npc = (Sprite *)malloc(sizeof(Sprite));
-                POINT pos = curr->npc->npcSprite->pos;
-                SIZE size = curr->npc->npcSprite->size;
-                CreateAnimatedSprite(dead_npc, pos.x, pos.y, size.cx, size.cy, "./assets/dead_spray.png", "basic", 24, 8);
-                SpriteGroup *npcWrapper = (SpriteGroup *)malloc(sizeof(SpriteGroup));
-                npcWrapper->sprite = dead_npc;
-                npcWrapper->next = NULL;
-                if (dead_npcs == NULL){
-                    dead_npcs = npcWrapper;
-                }else{
-                    SpriteGroup *tmp_sg = dead_npcs;
-                    while (tmp_sg->next != NULL)tmp_sg = tmp_sg->next;
-                    tmp_sg->next = npcWrapper;
-                }
-
-                NPCGroup *tmp = curr->next;
-                EraseSprite(curr->npc->npcSprite);
-                if (curr->npc->conv != NULL) unloadConversation(curr->npc->conv);
-                free(curr->npc);
-                free(curr);
-                curr = tmp;
-                if (prev == NULL) {
-                    loaded_NPCs = curr;
-                }else{
-                    prev->next = tmp;
-                }
+                curr = killNPC(prev, curr);
                 continue;
             }
             curr->npc->forces[1] = -(jump_force - 200);
@@ -399,6 +406,33 @@ void doShortAttack(Sprite *HurtBox, int damage){
             curr->npc->hitTime = 0;
             if (curr->npc->friendly == FALSE && curr->npc->talked == FALSE){
                 curr->npc->talked = TRUE;
+            }
+        }
+        prev = curr;
+        curr = curr->next;
+    }
+}
+
+void doExplosiveDamage(POINT center, int radius, int damage){
+    // Do damage to NPCs
+    NPCGroup *curr = loaded_NPCs;
+    NPCGroup *prev = NULL;
+    while(curr != NULL){
+        Sprite *sprite = curr->npc->npcSprite;
+        if (curr->npc->friendly == TRUE) {
+            curr = curr->next;
+            continue;
+        }
+        float distanceToPoint = sqrt(pow(center.x-curr->npc->npcSprite->pos.x, 2.0) + pow(center.y-curr->npc->npcSprite->pos.y, 2.0));
+        if (distanceToPoint <= radius){
+            // damage calculated on a sin curve
+            double distance_as_percentage = distanceToPoint/radius;
+            int total_damage = (int) round(cos(distance_as_percentage * (3.14159265/2.0)) * damage);
+            curr->npc->npcSprite->health -= total_damage;
+            curr->npc->hitTime = 0;
+            if (curr->npc->npcSprite->health <= 0){
+                curr = killNPC(prev, curr);
+                continue;
             }
         }
         prev = curr;

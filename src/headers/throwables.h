@@ -5,6 +5,8 @@
 #ifndef throwables
 #define throwables
 
+int grenade_count;
+
 void startGrenade();
 
 void drawGrenades(HDC hdc);
