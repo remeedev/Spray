@@ -14,11 +14,29 @@ int watermarkShow = TRUE;
 float wm_time = 0.0f;
 float wm_duration = 5.0f;
 
+Sprite *mainMenu = NULL;
+float time_since_anim = 0.0f;
+int time_between_anim = 5;
+
 Sprite *watermark = NULL;
+
+void endMainMenu(){
+    if (mainMenu) EraseSprite(mainMenu);
+    mainMenu = NULL;
+}
+
+void startMainMenu(){
+    endMainMenu();
+    mainMenu = (Sprite *)malloc(sizeof(Sprite));
+    int upscale = game_res[0]/160.0;
+    CreateAnimatedSprite(mainMenu, 0, 0, game_res[0], game_res[1], "./assets/ui/main_menu.png", "mm", 12, upscale);
+}
+
 void endWatermark(){
     if (watermark)EraseSprite(watermark);
     watermark = NULL;
 }
+
 void loadWatermark(){
     endWatermark();
     watermark = (Sprite *)malloc(sizeof(Sprite));
@@ -37,6 +55,7 @@ void startGameSystem(HWND hWnd, int screen_width, int screen_height){
     StartGraphics(hWnd);
     Resize(hWnd, screen_width, screen_height);
     LoadBrushes();
+    startMainMenu();
 
     if (watermarkShow){
         loadWatermark();
@@ -45,6 +64,7 @@ void startGameSystem(HWND hWnd, int screen_width, int screen_height){
 
 void startGame(){
     InitPlayer();
+    endMainMenu();
     POINT zero_pos;
     zero_pos.x = 0;
     zero_pos.y = 0;
@@ -67,6 +87,7 @@ void showCredits(){
 void ForceGameMenu(){
     EndLastLevel();
     in_level = FALSE;
+    startMainMenu();
 }
 
 // GAME MENU INFORMATION
@@ -74,26 +95,27 @@ char *menu_opts[] = {"Start Game", "Options", "Credits", "Quit Game", NULL};
 void (*menu_funcs[])() = {&startGame, &openOptions, &forceExit};
 int currMenuOpt = 0;
 
+char *funText = "The cat's name is max!";
+
 void drawGameMenu(){
-    SelectObject(hdcMem, TitleFont);
+    PaintSprite(hdcMem, mainMenu);
     SetTextAlign(hdcMem, TA_TOP);
-    SetTextColor(hdcMem,regular_text_color);
     SetBkMode(hdcMem, TRANSPARENT);
-    TextOut(hdcMem, 0, 0, "Sprayz", 6);
     SelectObject(hdcMem, GameFont);
 
     TEXTMETRIC tm;
     GetTextMetrics(hdcMem, &tm);
     int curr = 0;
-    int startPadding = 80;
+    int startPadding = 225;
+    int leftMargin = 20;
     while (menu_opts[curr] != NULL){
         int x = 0;
-        SetTextColor(hdcMem, undermined_text_color);
+        SetTextColor(hdcMem, regular_text_color);
         if (currMenuOpt == curr){
             x = 20;
             SetTextColor(hdcMem, highlight_text_color);
         }
-        TextOut(hdcMem, x, startPadding + curr*(tm.tmHeight+tm.tmAscent), menu_opts[curr], strlen(menu_opts[curr]));
+        TextOut(hdcMem, x + leftMargin, startPadding + curr*(tm.tmHeight+tm.tmAscent), menu_opts[curr], strlen(menu_opts[curr]));
         curr++;
     }
     SetTextAlign(hdcMem, TA_BOTTOM | TA_RIGHT);
@@ -198,5 +220,16 @@ void updateEvent(float dt){
             endWatermark();
         }
         return;
+    }
+    if (GetFrame(mainMenu->brush->anim_group) != 23) {
+        UpdateAnimatedSprite(mainMenu->brush->anim_group, dt);
+    }else {
+        time_since_anim += dt;
+        if (time_since_anim > time_between_anim){
+            time_since_anim = 0.0f;
+            while (GetFrame(mainMenu->brush->anim_group) != 0){
+                UpdateAnimatedSprite(mainMenu->brush->anim_group, dt);
+            }
+        }
     }
 }

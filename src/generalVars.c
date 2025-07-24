@@ -13,7 +13,7 @@ HFONT SmallBig;
 COLORREF regular_text_color = RGB(255, 255, 255);
 COLORREF undermined_text_color = RGB(150, 150, 150);
 COLORREF ignore_text_color = RGB(50, 50, 50);
-COLORREF highlight_text_color = RGB(150, 150, 50);
+COLORREF highlight_text_color = RGB(250, 250, 50);
 
 HWND mainWindow;
 
