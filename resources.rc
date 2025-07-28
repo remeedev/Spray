@@ -1,0 +1,3 @@
+#include "./src/headers/resource.h"
+
+IDI_SPRAY_ICON ICON "./assets/icon/sprayz.ico"

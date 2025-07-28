@@ -8,6 +8,7 @@
 #include "headers/console.h"
 #include "headers/generalvars.h"
 #include "headers/handler.h"
+#include "headers/resource.h"
 
 void get_mouse_pos(HWND hWnd, LPPOINT out){
     // Adding default values
@@ -111,8 +112,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     wc.cbWndExtra = 0;
     wc.hInstance = hInstance;
     wc.hCursor = LoadCursor(NULL, IDC_ARROW);
-    wc.hIcon = LoadIcon(NULL, IDI_APPLICATION);
-    wc.hIconSm = LoadIcon(NULL, IDI_APPLICATION);
+    wc.hIcon = LoadIcon(hInstance, MAKEINTRESOURCE(IDI_SPRAY_ICON));
+    wc.hIconSm = LoadIcon(hInstance, MAKEINTRESOURCE(IDI_SPRAY_ICON));
     wc.hbrBackground = (HBRUSH)(BLACK_BRUSH);
     wc.lpszMenuName = NULL;
     wc.lpszClassName = "WindowClass";
