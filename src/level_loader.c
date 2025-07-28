@@ -346,6 +346,8 @@ void loadLevel(char *level_name){
     }
 }
 
+Sprite *pause_menu_anim = NULL;
+
 void StartGraphics(HWND hWnd){
     HDC hdc = GetDC(hWnd);
     hdcMem = CreateCompatibleDC(hdc);
@@ -356,6 +358,13 @@ void StartGraphics(HWND hWnd){
     InitConsole();
     startUI();
     startDayCycle(hWnd);
+    pause_menu_anim = (Sprite *)malloc(sizeof(Sprite));
+    if (pause_menu_anim == NULL){
+        printf("There was an error allocating space for the pause menu animation!\n");
+        return;
+    }
+    int upscale = game_res[0]/160;
+    CreateAnimatedSprite(pause_menu_anim, 0, 0, game_res[0], game_res[1], "./assets/ui/pause_menu.png", "pm", 6, upscale);
 
     collisionColor = RGB(255, 0, 0);
     characterColor = RGB(0, 255, 0);
@@ -417,6 +426,7 @@ void DrawPauseMenu(HDC hdcMem, RECT *rcPaint){
         FillRect(hdcMem, rcPaint, CreateNewColorBrush(RGB(0, 0, 0))->brush);
         game_paused = TRUE;
     }
+    PaintSprite(hdcMem, pause_menu_anim);
     SelectObject(hdcMem, TitleFont);
     SetBkMode(hdcMem, TRANSPARENT);
     SetTextAlign(hdcMem, TA_TOP | TA_CENTER);
@@ -618,6 +628,7 @@ void onEnd(){
     endUI();
     endParticles();
 
+    if (pause_menu_anim) EraseSprite(pause_menu_anim);
     if (hdcMem && hbmOld) SelectObject(hdcMem, hbmOld);
     if (hdcMem) DeleteDC(hdcMem);
     if (hbmMem) DeleteObject(hbmMem);

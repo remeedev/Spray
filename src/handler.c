@@ -211,6 +211,18 @@ void drawEvent(HWND hWnd){
 void updateEvent(float dt){
     if (in_level){
         if (!paused) Update(dt);
+        if (paused) {
+            if (GetFrame(pause_menu_anim->brush->anim_group) != 15) {
+                UpdateAnimatedSprite(pause_menu_anim->brush->anim_group, dt);
+            }else{
+                time_since_anim += dt;
+                if (time_since_anim > time_between_anim){
+                    time_since_anim = 0.0f;
+                    while (GetFrame(pause_menu_anim->brush->anim_group) != 0) UpdateAnimatedSprite(pause_menu_anim->brush->anim_group, dt);
+                    time_between_anim = 5 + rand()%5;
+                }
+            }
+        }
         return;
     }
     if (watermarkShow && wm_time < wm_duration && watermark != NULL){
@@ -230,6 +242,7 @@ void updateEvent(float dt){
             while (GetFrame(mainMenu->brush->anim_group) != 0){
                 UpdateAnimatedSprite(mainMenu->brush->anim_group, dt);
             }
+            time_between_anim = 5 + rand()%5;
         }
     }
 }

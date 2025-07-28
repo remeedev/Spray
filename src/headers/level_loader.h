@@ -21,6 +21,7 @@ HBITMAP hbmOld;
 int resized_ticks;
 int closest_width, closest_height;
 int offsetX, offsetY;
+Sprite *pause_menu_anim;
 
 // ADMIN VAR END
 
