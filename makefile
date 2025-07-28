@@ -12,3 +12,6 @@ sprayz:
 
 run: sprayz
 	$(file)
+
+final:
+	gcc -o $(file) $(src_files) $(FLAGS) -mwindows
