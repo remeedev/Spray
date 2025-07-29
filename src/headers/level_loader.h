@@ -24,8 +24,9 @@ int offsetX, offsetY;
 Sprite *pause_menu_anim;
 
 // ADMIN VAR END
-
 void loadLevel(char *file_name);
+
+int searchRedirect(int forceRedirect);
 
 void forceExit();
 void UIKeyDown(UINT key);

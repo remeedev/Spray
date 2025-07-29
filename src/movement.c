@@ -5,6 +5,7 @@
 #include "headers/generalvars.h"
 #include "headers/particles.h"
 #include "headers/throwables.h"
+#include "headers/level_loader.h"
 
 #include <stdio.h>
 
@@ -52,7 +53,11 @@ void HandleKeyDown(UINT key){
     if (console_on) return;
     if (key == VK_SPACE && talking) conversationsNext();
     if (talking) return;
-    if (key == 'F') conversationsNext();
+    if (key == 'F') {
+        if (searchRedirect(TRUE) == FALSE){
+            conversationsNext();
+        }
+    }
     if (key == 'E') attacking = TRUE;
     if (key == 'W') w = 1;
     if (key == 'A') a = 1;

@@ -471,6 +471,7 @@ void DrawCollisionsIfNeeded(HDC hdc){
         FillRect(hdc, &box, CreateNewColorBrush(collisionColor)->brush);
         tmp = tmp->next;
     }
+    PaintSpriteGroup(hdc, redirects);
 }
 
 void DrawPlayerDebug(HDC hdc){
@@ -568,23 +569,20 @@ void EndLastLevel(){
     }
 }
 
-void Update(float dt){
-    updateGrenades(dt, collisions);
-    UpdatePosition(dt, collisions);
-    updateParticles(dt);
-    UpdateAnimatedSprites(collisions, dt);
-    updateDayCycle(dt);
+int searchRedirect(int forceRedirect){
     SpriteGroup *curr = redirects;
     RedirectItem *curr_redirect = redirect_links;
     int redirected = FALSE;
-    updateNPCs(collisions);
-    while (curr != NULL && !redirected){
+    int out = FALSE;
+    while (curr != NULL && !redirected && out == FALSE){
         int *CollisionsReg = (int *)malloc(sizeof(int) * 8);
         if (GetCollision(curr->sprite, CollisionsReg, GetPlayerPtr()) > 0){
+            if (forceRedirect == FALSE) return TRUE; // Just wants to know if player is near redirect
+            out = TRUE;
             char *redirect_copy = (char *)malloc(strlen(curr_redirect->redirect)+1);
             if (redirect_copy == NULL){
                 printf("Error allocating space for data!\n");
-                return;
+                return FALSE;
             }
             for (int i = 0; i < strlen(curr_redirect->redirect)+1; i++)redirect_copy[i] = curr_redirect->redirect[i];
             EndLastLevel();
@@ -616,6 +614,16 @@ void Update(float dt){
             curr = curr->next;
         }
     }
+    return out;
+}
+
+void Update(float dt){
+    updateGrenades(dt, collisions);
+    UpdatePosition(dt, collisions);
+    updateParticles(dt);
+    UpdateAnimatedSprites(collisions, dt);
+    updateDayCycle(dt);
+    updateNPCs(collisions);
 }
 
 void onEnd(){

@@ -35,6 +35,62 @@ void startUI(){
     grenade_text.y = margin + (int)(((float)AssetSize.cy)*(3.0/4.0));
 }
 
+void drawPrompt(HDC hdc, char *prompt){
+    SelectObject(hdc, GameFont);
+    SetTextAlign(hdc, TA_TOP | TA_LEFT);
+    TEXTMETRIC tm;
+    GetTextMetrics(hdc, &tm);
+    int padding = 5;
+    int margin = 20;
+    int borderWeight = 4;
+    POINT startPoint = {background_rect.right + margin, background_rect.top};
+
+    COLORREF border_color = RGB(94, 61, 20);
+    COLORREF bg_color = RGB(173, 135, 87);
+    int innerHeight = tm.tmHeight + padding*2;
+    int innerWidth = tm.tmAveCharWidth*strlen(prompt) + padding*2;
+
+    RECT border_left = {
+        startPoint.x,
+        startPoint.y + borderWeight,
+        startPoint.x + borderWeight,
+        startPoint.y + innerHeight + borderWeight
+    };
+    RECT border_top = {
+        startPoint.x + borderWeight,
+        startPoint.y,
+        startPoint.x + borderWeight + innerWidth,
+        startPoint.y + borderWeight
+    };
+    RECT border_bottom = {
+        startPoint.x + borderWeight,
+        startPoint.y + borderWeight + innerHeight,
+        startPoint.x + borderWeight + innerWidth,
+        startPoint.y + borderWeight*2 + innerHeight
+    };
+    RECT border_right = {
+        startPoint.x + innerWidth + borderWeight,
+        startPoint.y + borderWeight,
+        startPoint.x + innerWidth + borderWeight*2,
+        startPoint.y + borderWeight + innerHeight
+    };
+
+    RECT prompt_holder = {
+        startPoint.x + borderWeight,
+        startPoint.y + borderWeight,
+        startPoint.x + borderWeight + innerWidth,
+        startPoint.y + borderWeight + innerHeight
+    };
+    FillRect(hdc, &border_left, CreateNewColorBrush(border_color)->brush);
+    FillRect(hdc, &border_right, CreateNewColorBrush(border_color)->brush);
+    FillRect(hdc, &border_top, CreateNewColorBrush(border_color)->brush);
+    FillRect(hdc, &border_bottom, CreateNewColorBrush(border_color)->brush);
+    
+    FillRect(hdc, &prompt_holder, CreateNewColorBrush(bg_color)->brush);
+
+    TextOut(hdc, startPoint.x + borderWeight + padding, startPoint.y + borderWeight + padding, prompt, strlen(prompt));
+}
+
 void drawUI(HDC hdc){
     int playerHealth = GetPlayerPtr()->health;
     int maxHealth = GetPlayerPtr()->maxHealth;
@@ -55,6 +111,11 @@ void drawUI(HDC hdc){
     SetBkMode(hdc, TRANSPARENT);
     TextOut(hdc, grenade_text.x, grenade_text.y, count_text, strlen(count_text));
     PaintSprite(hdc, sprayCan);
+
+    // Draw key prompt
+    if (searchRedirect(FALSE)){
+        drawPrompt(hdc, "F");
+    } 
 }
 
 void endUI(){

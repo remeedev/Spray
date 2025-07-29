@@ -171,6 +171,12 @@ void taskDraws(){
     if (watermarkShow && wm_time < wm_duration && watermark != NULL){
         // DRAW WATERMARK
         PaintSprite(hdcMem, watermark);
+        SetTextColor(hdcMem, regular_text_color);
+        SetBkMode(hdcMem, TRANSPARENT);
+        SetTextAlign(hdcMem, TA_BOTTOM | TA_LEFT);
+        SelectObject(hdcMem, GameFont);
+        char *hintText = "Press space bar to skip cutscene";
+        TextOut(hdcMem, 0, game_res[1], hintText, strlen(hintText));
         return;
     }
     drawGameMenu();
