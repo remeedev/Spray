@@ -92,6 +92,10 @@ void endDayCycle(){
 
 // TODO: FIX MOUNTAINS WHEN GOING BACK A LEVEL
 
+double relative_movement(){
+    return (( (double)(GetPlayerPos().x) / (double)game_res[1] )*0.01)*(double)game_res[0];
+}
+
 void updateDayCycle(float dt){
     game_time += dt;
     if (game_time >= max_time)game_time -= max_time;
@@ -101,6 +105,7 @@ void updateDayCycle(float dt){
             mountainX = mountains->pos.x;
         }else{
             assumed_level --;
+            mountainX = mountains->pos.x + relative_movement();
         }
     }
     prevX = GetPlayerPos().x;
@@ -150,14 +155,14 @@ void updateDayCycle(float dt){
     }
 }
 
+
 void drawDayCycle(HDC hdc){
     int shownHeight = gradient_height*(game_time / max_time);
     BitBlt(hdc, 0, 0, game_res[0], game_res[1], hdc_gradient, 0, shownHeight, SRCCOPY);
     if (gradient_height-shownHeight < game_res[1]){
         BitBlt(hdc, 0, gradient_height - shownHeight, game_res[0], game_res[1], hdc_gradient, 0, 0, SRCCOPY);
     }
-
-    mountains->pos.x = mountainX -(( (float)(GetPlayerPos().x) / game_res[1] )*0.01)*game_res[0];
+    mountains->pos.x = mountainX - relative_movement();
     if (clouds) PaintSpriteGroup(hdc, clouds);
     PaintSprite(hdc, mountains);
 }
