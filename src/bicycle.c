@@ -21,7 +21,24 @@ double game_time = 0;
 int max_time = 900; // This represents a from morning to sunset
 int gradient_height;
 
+Sprite *mountains;
+int prevX = 0;
+int mountainX = 0;
+int assumed_level = 0;
+
+SpriteGroup *clouds = NULL;
+double time_between_clouds = 3.0;
+double time_since_cloud = 3.0;
+
+int cloud_count = 5;
+
 void startDayCycle(HWND hwnd){
+    mountains = (Sprite *)malloc( sizeof(Sprite) );
+    if (mountains == NULL){
+        printf("Error loading the image of the mountains!\n");
+        return;
+    }
+    CreateImgSprite(mountains, 0, 0, game_res[0]*2, game_res[1], "./assets/sky/mountains.png", 8);
     if (set_gradient) return;
     HDC main_hdc = GetDC(hwnd);
     hdc_gradient = CreateCompatibleDC(main_hdc);
@@ -73,9 +90,64 @@ void endDayCycle(){
     DeleteDC(hdc_gradient);
 }
 
+// TODO: FIX MOUNTAINS WHEN GOING BACK A LEVEL
+
 void updateDayCycle(float dt){
     game_time += dt;
     if (game_time >= max_time)game_time -= max_time;
+    if (abs(prevX - GetPlayerPos().x) > 500){
+        if ((int)GetPlayerPos().x < (int)(game_res[0]/2.0)){
+            assumed_level ++;
+            mountainX = mountains->pos.x;
+        }else{
+            assumed_level --;
+        }
+    }
+    prevX = GetPlayerPos().x;
+    SpriteGroup *currCloud = clouds;
+    SpriteGroup *prev = NULL;
+    int cloudN = 0;
+    int clouds_spawned = 0;
+    while (currCloud != NULL) {
+        clouds_spawned++;
+        currCloud->sprite->pos.x += 1;
+        if ((long)currCloud->sprite->pos.x > (long)game_res[0]){
+            SpriteGroup *next = currCloud->next;
+            EraseSprite(currCloud->sprite);
+            free(currCloud);
+            if (prev != NULL){
+                prev->next = next;
+            }else{
+                clouds = next;
+            }
+            currCloud = next;
+            continue;
+        }
+        prev = currCloud;
+        currCloud = currCloud->next;
+    }
+    if (clouds_spawned < cloud_count){
+        time_since_cloud += dt;
+        if (time_since_cloud > time_between_clouds){
+            time_since_cloud = 0.0;
+            Sprite *cloud = (Sprite *)malloc(sizeof(Sprite));
+            if (cloud == NULL){
+                printf("Error loading a new cloud!\n");
+                return;
+            }
+            int upscale = 8;
+            int x = -80*upscale - rand()%500;
+            int y = rand()%400 - 250;
+            CreateImgSprite(cloud, x, y, 80*upscale, 45*upscale, "./assets/sky/cloud0.png", upscale);
+            if (clouds == NULL){
+                clouds = (SpriteGroup *)malloc(sizeof(SpriteGroup));
+                clouds->next = NULL;
+                clouds->sprite = cloud;
+            }else{
+                AddSpriteToGroup(clouds, cloud);
+            }
+        }
+    }
 }
 
 void drawDayCycle(HDC hdc){
@@ -84,4 +156,8 @@ void drawDayCycle(HDC hdc){
     if (gradient_height-shownHeight < game_res[1]){
         BitBlt(hdc, 0, gradient_height - shownHeight, game_res[0], game_res[1], hdc_gradient, 0, 0, SRCCOPY);
     }
+
+    mountains->pos.x = mountainX -(( (float)(GetPlayerPos().x) / game_res[1] )*0.01)*game_res[0];
+    if (clouds) PaintSpriteGroup(hdc, clouds);
+    PaintSprite(hdc, mountains);
 }

@@ -292,7 +292,7 @@ void ProcessData(char *name, int argc, char **argv){
 
 // Load lvl file
 void loadLevel(char *level_name){
-    collisions = CreateMapBoundaries(0, game_res[0], game_res[1]);
+    collisions = CreateMapBoundaries(128, game_res[0], game_res[1]);
     if (validExtension(level_name)){
         FILE *level = fopen(level_name, "rb");
         fclose(level);
@@ -510,7 +510,12 @@ void DrawGame(){
     if (!paused){
         drawDayCycle(hdcMem);
         if (bg != NULL) PaintSprite(hdcMem, bg);
-        PaintSpriteGroup(hdcMem, collisions);
+        SpriteGroup *after_floor = collisions;
+        while (after_floor != NULL){
+             if (after_floor->sprite->brush->anim_group != NULL) break;
+             after_floor = after_floor->next;
+        }
+        PaintSpriteGroup(hdcMem, after_floor);
         // Shows redirect collision boxes
         // PaintSpriteGroup(hdcMem, redirects);
         DrawCollisionsIfNeeded(hdcMem);
@@ -596,7 +601,7 @@ int searchRedirect(int forceRedirect){
                 player_pos.y = 0;
             }
             if (CollisionsReg[0] && CollisionsReg[2]){
-                player_pos.x = game_res[2]-GetPlayerSize().cx;
+                player_pos.x = game_res[0]-GetPlayerSize().cx;
             }
             if (CollisionsReg[1] && CollisionsReg[3]){
                 player_pos.x = 0;

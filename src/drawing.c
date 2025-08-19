@@ -214,6 +214,7 @@ void UpdateAnimatedSprites(SpriteGroup *group, float dt){
 // ====================== Sprite Group Logic =======================
 
 void AddSpriteToGroup(SpriteGroup *group, Sprite *sprite){
+    if (group == NULL) return;
     SpriteGroup *curr_elem = group;
     while (curr_elem->next != NULL){
         curr_elem = curr_elem->next;
@@ -365,6 +366,7 @@ void SetPlayerPos(POINT new_pos){
 
 // =================== GRAPHICS LOGIC =======================
 void PaintSprite(HDC hdc, Sprite* sprite){
+    if (sprite == NULL) return;
     RECT spriteInfo;
     spriteInfo.left = sprite->pos.x;
     spriteInfo.right = sprite->pos.x + sprite->size.cx;

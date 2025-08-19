@@ -71,7 +71,7 @@ void startGame(){
     SetPlayerPos(zero_pos);
     player_forces[0] = 0;
     player_forces[1] = 0;
-    loadLevel("./levels/particles.txt");
+    loadLevel("./levels/level_0.txt");
     paused = FALSE;
     in_level = TRUE;
 }

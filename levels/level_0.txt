@@ -1,0 +1,2 @@
+BGI="./assets/map/0.png",8
+REF=1270,392,10,200,"./levels/level_1.txt"
