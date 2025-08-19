@@ -6,6 +6,8 @@
 #include "headers/generalvars.h"
 #include "headers/console_cmd.h"
 
+POINT console_pos = {0, 0};
+
 char *console_out = NULL;
 char *console_in = NULL;
 
@@ -66,6 +68,8 @@ void ClearConsole(){
 void DrawConsoleIfNeeded(HDC hdcMem){
     if (!console_on) return;
 
+    int character_limit = 128;
+
     // Get font information
     TEXTMETRIC tm;
     SelectObject(hdcMem, ConsoleFont);
@@ -75,15 +79,23 @@ void DrawConsoleIfNeeded(HDC hdcMem){
     int fontHeight = tm.tmHeight;
     int spacing = 4;
 
-    RECT background_rect = {0, 0, 128 * fontWidth + spacing, 10 * (fontHeight + spacing)};
+    RECT background_rect = {
+        console_pos.x,
+        console_pos.y,
+        console_pos.x + character_limit * fontWidth + spacing,
+        console_pos.y + 10 * (fontHeight + spacing)
+    };
     FillRect(hdcMem, &background_rect, CreateNewColorBrush(RGB(0, 0, 0))->brush);
 
-    RECT input_rect;
-    input_rect.top = background_rect.bottom;
-    input_rect.left = background_rect.left;
-    input_rect.right = background_rect.right;
-    input_rect.bottom = input_rect.top + fontHeight + spacing;
+    RECT input_rect = {
+        background_rect.left,
+        background_rect.bottom,
+        background_rect.bottom + fontHeight + spacing,
+        background_rect.right
+    };
     FillRect(hdcMem, &input_rect, CreateNewColorBrush(RGB(50, 50, 50))->brush);
+
+    // Start writing the words
     SetTextColor(hdcMem, RGB(255, 255, 255));
     SetTextAlign(hdcMem, TA_BASELINE | TA_LEFT);
     SetBkMode(hdcMem, TRANSPARENT);
@@ -115,6 +127,7 @@ void DrawConsoleIfNeeded(HDC hdcMem){
         recRect.top = input_rect.bottom;
         recRect.bottom = recRect.top + fontHeight + spacing;
         recRect.right = recRect.left + fontWidth*(strlen(cmds[recommendation]) + 2);
+
         FillRect(hdcMem, &recRect, CreateNewColorBrush(RGB(50, 50, 50))->brush);
         int x = (recRect.right + recRect.left) / 2;
         int y = (recRect.bottom + recRect.top) / 2;
@@ -128,6 +141,7 @@ void DrawConsoleIfNeeded(HDC hdcMem){
     int currPos = strlen(console_out) - 1;
     int linesDrawn = 0;
     
+    // TODO: Repare console for clean printing!
     SetTextAlign(hdcMem, TA_BASELINE | TA_LEFT);
     int ignoreFirst = FALSE;
     while (currPos > 0 && linesDrawn < 10){

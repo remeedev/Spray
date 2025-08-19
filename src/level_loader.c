@@ -194,12 +194,7 @@ COLORREF readColor(char *color){
 }
 
 void ProcessData(char *name, int argc, char **argv){
-    if (strcmp(name, "COL") == 0){
-        if (argc < 5){
-            printf("Badly formatted collision box!\n");
-            for (int i = 0; i < argc; i++) free(argv[i]); // Free all arguments
-            return;
-        }
+    if (strcmp(name, "COL") == 0 && argc >= 5 && argc <= 6){
         int x, y, cx, cy;
         x = toInt(argv[0]);
         y = toInt(argv[1]);
