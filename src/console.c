@@ -68,7 +68,7 @@ void ClearConsole(){
 void DrawConsoleIfNeeded(HDC hdcMem){
     if (!console_on) return;
 
-    int character_limit = 128;
+    int character_limit = 125;
 
     // Get font information
     TEXTMETRIC tm;
@@ -80,18 +80,18 @@ void DrawConsoleIfNeeded(HDC hdcMem){
     int spacing = 4;
 
     RECT background_rect = {
-        console_pos.x,
-        console_pos.y,
-        console_pos.x + character_limit * fontWidth + spacing,
-        console_pos.y + 10 * (fontHeight + spacing)
+        console_pos.x, // Left
+        console_pos.y, // Top
+        console_pos.x + character_limit * fontWidth + spacing, // Right
+        console_pos.y + 10 * (fontHeight + spacing) // Bottom
     };
     FillRect(hdcMem, &background_rect, CreateNewColorBrush(RGB(0, 0, 0))->brush);
 
     RECT input_rect = {
         background_rect.left,
         background_rect.bottom,
-        background_rect.bottom + fontHeight + spacing,
-        background_rect.right
+        background_rect.right,
+        background_rect.bottom + fontHeight + spacing
     };
     FillRect(hdcMem, &input_rect, CreateNewColorBrush(RGB(50, 50, 50))->brush);
 
