@@ -552,6 +552,7 @@ void Resize(HWND hWnd, int screen_width, int screen_height){
 
 void EndLastLevel(){
     clearSprites();
+    endGrenades();
     if (bg) EraseSprite(bg);
     if (collisions) DeleteSpriteGroup(collisions);
     if (redirects) DeleteSpriteGroup(redirects);
@@ -635,6 +636,7 @@ void onEnd(){
     endDayCycle();
     endUI();
     endParticles();
+    endGrenades();
 
     if (pause_menu_anim) EraseSprite(pause_menu_anim);
     if (hdcMem && hbmOld) SelectObject(hdcMem, hbmOld);

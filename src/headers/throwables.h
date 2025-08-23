@@ -15,4 +15,6 @@ void throwGrenade();
 
 void updateGrenades(float dt, SpriteGroup* collisions);
 
+void endGrenades();
+
 #endif
