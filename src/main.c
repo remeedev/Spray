@@ -42,9 +42,6 @@ void get_screen_dimensions(HWND hwnd){
     }
 }
 
-int is_fullscreen = FALSE;
-RECT memorySize;
-
 // Define the window procedure
 LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) {
     switch (msg) {
@@ -72,22 +69,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) {
             break;
         case WM_KEYDOWN: ;
             if (wParam == VK_F11){
-                if (!is_fullscreen){
-                    RECT wR;
-                    GetWindowRect(hWnd, &memorySize);
-                    GetClientRect(GetDesktopWindow(), &wR);
-                    SetWindowLong(hWnd, GWL_STYLE, WS_POPUP | WS_VISIBLE);
-                    SetWindowPos(hWnd, HWND_TOP, 0, 0, wR.right, wR.bottom, SWP_NOOWNERZORDER | SWP_FRAMECHANGED | SWP_SHOWWINDOW);
-                    is_fullscreen = TRUE;
-                }else{
-                    SetWindowLong(hWnd, GWL_STYLE, WS_OVERLAPPEDWINDOW | WS_VISIBLE);
-                    int x = memorySize.left;
-                    int y = memorySize.top;
-                    int cx = memorySize.right - x;
-                    int cy = memorySize.bottom - y;
-                    SetWindowPos(hWnd, HWND_TOPMOST, x, y, cx, cy, SWP_NOOWNERZORDER | SWP_FRAMECHANGED | SWP_SHOWWINDOW);
-                    is_fullscreen = FALSE;
-                }
+                toggle_fullscreen();
             }
             handleKEYDOWN(wParam);
             break;

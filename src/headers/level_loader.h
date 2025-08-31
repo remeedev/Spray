@@ -22,6 +22,7 @@ int resized_ticks;
 int closest_width, closest_height;
 int offsetX, offsetY;
 Sprite *pause_menu_anim;
+char *current_level_name;
 
 // ADMIN VAR END
 void loadLevel(char *file_name);

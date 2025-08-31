@@ -31,6 +31,9 @@ HBITMAP hbmMem = NULL;
 HDC hdcMem = NULL;
 HBITMAP hbmOld = NULL;
 
+// Store currently playing level
+char *current_level_name = NULL;
+
 // Checks file extension
 int validExtension(char *file_name){
     size_t ext_size = 0;
@@ -339,6 +342,7 @@ void loadLevel(char *level_name){
         }
         fclose(level_raw);
     }
+    current_level_name = level_name;
 }
 
 Sprite *pause_menu_anim = NULL;
@@ -587,21 +591,11 @@ int searchRedirect(int forceRedirect){
             }
             for (int i = 0; i < strlen(curr_redirect->redirect)+1; i++)redirect_copy[i] = curr_redirect->redirect[i];
             EndLastLevel();
-            // Move character to position before loading level
+            // Move character to position before loading level (Assuming only lateral movement)
             POINT player_pos = GetPlayerPos();
 
-            if (CollisionsReg[0] && CollisionsReg[1]){
-                player_pos.y = game_res[1]-200;
-            }
-            if (CollisionsReg[2] && CollisionsReg[3]){
-                player_pos.y = 0;
-            }
-            if (CollisionsReg[0] && CollisionsReg[2]){
-                player_pos.x = game_res[0]-GetPlayerSize().cx;
-            }
-            if (CollisionsReg[1] && CollisionsReg[3]){
-                player_pos.x = 0;
-            }
+            player_pos.x = player_pos.x < 25 ? game_res[0] - GetPlayerSize().cx : player_pos.x + GetPlayerSize().cx >= game_res[0] - 25 ? 0 : player_pos.x;
+
             SetPlayerPos(player_pos);
 
             loadLevel(redirect_copy);
