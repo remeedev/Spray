@@ -13,6 +13,19 @@ typedef void (*cmdFunc)(int, char **);
 
 char *cmds[] = {"log", "get", "set", "clear", "game_ver", "quit_game", "list_commands", "toggle_debug", "setHarm", "setTime", NULL};
 
+typedef struct rec_node{
+    char *recommendation;
+    struct rec_node **rec_list;
+} rec_node;
+
+char *get_recommendation(char *curr_search, int path_length, char **paths){
+    // Missing proper implementation
+    // Arguments expected: <user_in>, <len(paths_before_user_in)> <paths_before_user_in>
+    // eg. : "he", 1,"list_commands" -> list_commands he
+    // Should return "help"
+
+}
+
 void listCommands(int argc, char **argv){
     if (argc == 1){
         if (strcmp(argv[0], "help") == 0){

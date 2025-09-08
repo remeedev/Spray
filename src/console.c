@@ -142,13 +142,15 @@ void DrawConsoleIfNeeded(HDC hdcMem){
     int linesDrawn = 0;
     
     // TODO: Repare console for clean printing!
+    // Mightve been fixed, needs testing
     SetTextAlign(hdcMem, TA_BASELINE | TA_LEFT);
     int ignoreFirst = FALSE;
+    int curr_width = background_rect.right - background_rect.left;
+    int max_size = (int)((float)game_res[0]/(float)curr_width);
     while (currPos > 0 && linesDrawn < 10){
         // Get last line
         size_t size = 0;
-        while (console_out[currPos - size] != '\n' && currPos - size > 0) size++;
-        if (currPos - size == 0) size++; // Still don't know why but its been in my head to write this specific line
+        while (console_out[currPos - size] != '\n' && currPos - size > 0 && size < max_size) size++;
         if (size == 0) {
             // In case read is invalid still assume line was drawn
             linesDrawn++;
@@ -163,10 +165,13 @@ void DrawConsoleIfNeeded(HDC hdcMem){
             console_text[size - i - 1] = console_out[currPos - i];
         }
         console_text[size] = '\0';
+
+        // Blatantly ignores the first line that was written, assumed to be a '\n' character
         if (!ignoreFirst){
             linesDrawn--;
             ignoreFirst = TRUE;
         }
+
         int yAlign = background_rect.bottom - (linesDrawn) * ( fontHeight + spacing );
         yAlign -= (spacing+fontHeight)/2;
         yAlign += -(fontHeight/2) + tm.tmAscent;
@@ -260,6 +265,7 @@ void runCommand(){
     InitConsoleVars();
 }
 
+// TODO: Make recommendations for the insides of each command
 void genRecommendation(){
     if (console_in[0] == '\0'){
         recommendation = -1;
