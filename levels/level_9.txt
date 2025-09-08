@@ -1,3 +1,5 @@
 BGI="./assets/map/9.png",8
 REF=0,392,10,200,"./levels/level_8.txt"
 REF=1270,392,10,200,"./levels/level_10.txt"
+REF=432,464,120,128,"./levels/plaza.txt"
+REF=720,464,136,128,"./levels/plaza.txt"

@@ -8,5 +8,6 @@ void startUI();
 void drawUI(HDC hdc);
 
 void endUI();
+int artistOptions;
 
 #endif

@@ -11,6 +11,8 @@ Sprite *sprayCan = NULL;
 RECT background_rect = {0, 0, 0, 0};
 POINT grenade_text;
 
+int artistOptions = FALSE;
+
 void startUI(){
     healthJar = (Sprite *)malloc(sizeof( Sprite ));
     if (healthJar == NULL){
@@ -111,6 +113,31 @@ void drawUI(HDC hdc){
     SetBkMode(hdc, TRANSPARENT);
     TextOut(hdc, grenade_text.x, grenade_text.y, count_text, strlen(count_text));
     PaintSprite(hdc, sprayCan);
+    if (artistOptions && current_level_name) {
+        POINT mouse;
+        GetCursorPos(&mouse);
+        ScreenToClient(mainWindow, &mouse);
+
+        mouse.x -= offsetX;
+        mouse.y -= offsetY;
+        mouse.x = mouse.x < 0 ? 0 : mouse.x;
+        mouse.y = mouse.y < 0 ? 0 : mouse.y;
+        int pixelSize = 8;
+        POINT as_coords = {(mouse.x*game_res[0])/closest_width, (mouse.y*game_res[1])/closest_height};
+        as_coords.x /= pixelSize;
+        as_coords.y /= pixelSize;
+        as_coords.x *= pixelSize;
+        as_coords.y *= pixelSize;
+
+        RECT outPixel = {as_coords.x, as_coords.y, (as_coords.x + pixelSize), (as_coords.y + pixelSize)};
+        FillRect(hdc, &outPixel, CreateNewColorBrush(RGB(255, 255, 255))->brush);
+        
+        char as_text[100];
+        sprintf(as_text, "(%d, %d)", as_coords.x, as_coords.y);
+        SetTextAlign(hdc, TA_LEFT | TA_TOP);
+        TextOut(hdc, 0, 0, current_level_name, strlen(current_level_name));
+        TextOut(hdc, 0, 48, as_text, strlen(as_text));
+    }
 
     // Draw key prompt
     if (searchRedirect(FALSE)){

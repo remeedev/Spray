@@ -129,9 +129,11 @@ void handleKEYDOWN(UINT key){
         UIKeyDown(key);
         return;
     }
-    if (watermark != NULL && key == VK_SPACE){
-        endWatermark();
-        watermarkShow = FALSE;
+    if (watermark != NULL){
+        if (key == VK_SPACE){
+            endWatermark();
+            watermarkShow = FALSE;
+        }
         return;
     }
     switch(key){

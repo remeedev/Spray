@@ -14,10 +14,32 @@ COLORREF regular_text_color = RGB(255, 255, 255);
 COLORREF undermined_text_color = RGB(150, 150, 150);
 COLORREF ignore_text_color = RGB(50, 50, 50);
 COLORREF highlight_text_color = RGB(250, 250, 50);
+int is_fullscreen = FALSE;
 
 HWND mainWindow;
 
 char *gameVersion = "Beta 0.0.1";
+
+RECT memorySize;
+
+void toggle_fullscreen(){
+    if (!is_fullscreen){
+        RECT wR;
+        GetWindowRect(mainWindow, &memorySize);
+        GetClientRect(GetDesktopWindow(), &wR);
+        SetWindowLong(mainWindow, GWL_STYLE, WS_POPUP | WS_VISIBLE);
+        SetWindowPos(mainWindow, HWND_TOP, 0, 0, wR.right, wR.bottom, SWP_NOOWNERZORDER | SWP_FRAMECHANGED | SWP_SHOWWINDOW);
+        is_fullscreen = TRUE;
+    }else{
+        SetWindowLong(mainWindow, GWL_STYLE, WS_OVERLAPPEDWINDOW | WS_VISIBLE);
+        int x = memorySize.left;
+        int y = memorySize.top;
+        int cx = memorySize.right - x;
+        int cy = memorySize.bottom - y;
+        SetWindowPos(mainWindow, HWND_TOPMOST, x, y, cx, cy, SWP_NOOWNERZORDER | SWP_FRAMECHANGED | SWP_SHOWWINDOW);
+        is_fullscreen = FALSE;
+    }
+}
 
 HFONT createSubFont(int size, int weight, char *name){
     return CreateFont(

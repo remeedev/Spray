@@ -206,3 +206,14 @@ void updateGrenades(float dt, SpriteGroup* collisions){
         curr = curr->next;
     }
 }
+
+void endGrenades(){
+    grenade *curr = grenadeObj;
+    while (curr != NULL) {
+        grenade *to_del = curr;
+        curr = curr->next;
+        DeleteSpriteGroup(to_del->obj);
+        free(to_del);
+    }
+    grenadeObj = NULL;
+}

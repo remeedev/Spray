@@ -8,6 +8,7 @@
 #include "headers/level_loader.h"
 #include "headers/npc.h"
 #include "headers/bicycle.h"
+#include "headers/ui.h"
 
 typedef void (*cmdFunc)(int, char **);
 
@@ -124,8 +125,8 @@ float getFloatFromString(char * text){
     return val;
 }
 
-char *variables[] = {"f_gravity", "b_see_collisions", "r_collisionColor", "r_spriteColor", "b_showDebug", "d_gametime", NULL};
-void *variableVal[] = {&gravity, &showCollisions, &collisionColor, &characterColor, &showDebug, &game_time};
+char *variables[] = {"f_gravity", "b_see_collisions", "r_collisionColor", "r_spriteColor", "b_showDebug", "d_gametime", "b_artistOptions", NULL};
+void *variableVal[] = {&gravity, &showCollisions, &collisionColor, &characterColor, &showDebug, &game_time, &artistOptions};
 
 void getVar(int argc, char **argv){
     if (argc < 1){
@@ -245,8 +246,10 @@ void fullDebug(int argc, char **argv){
     char *val = toggleDebug ? "TRUE" : "FALSE";
     char *falseArgv1[] = {"b_see_collisions", val};
     char *falseArgv2[] = {"b_showDebug", val};
+    char *falseArgv3[] = {"b_artistOptions", val};
     setVar(2, falseArgv1);
     setVar(2, falseArgv2);
+    setVar(2, falseArgv3);
 }
 
 void changeSpriteStatus(int argc, char **argv){
