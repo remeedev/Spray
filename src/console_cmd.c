@@ -255,7 +255,7 @@ void fullDebug(int argc, char **argv){
 void changeSpriteStatus(int argc, char **argv){
     if (argc == 1){
         if (strcmp(argv[0], "help") == 0){
-            PrintToConsole("This function makes a sprite, with it's id a friendly or an enemy\n");
+            PrintToConsole("This function makes a sprite, with it's id, a friendly or an enemy\n");
             PrintToConsole("Usage:\n'setHarm <id> <TRUE | FALSE>'\n");
             return;
         }
