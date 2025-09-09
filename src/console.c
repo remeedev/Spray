@@ -5,6 +5,7 @@
 #include "headers/drawing.h"
 #include "headers/generalvars.h"
 #include "headers/console_cmd.h"
+#include "headers/level_loader.h"
 
 POINT console_pos = {0, 0};
 
@@ -68,8 +69,6 @@ void ClearConsole(){
 void DrawConsoleIfNeeded(HDC hdcMem){
     if (!console_on) return;
 
-    int character_limit = 125;
-
     // Get font information
     TEXTMETRIC tm;
     SelectObject(hdcMem, ConsoleFont);
@@ -82,7 +81,7 @@ void DrawConsoleIfNeeded(HDC hdcMem){
     RECT background_rect = {
         console_pos.x, // Left
         console_pos.y, // Top
-        console_pos.x + character_limit * fontWidth + spacing, // Right
+        console_pos.x + game_res[0], // Right
         console_pos.y + 10 * (fontHeight + spacing) // Bottom
     };
     FillRect(hdcMem, &background_rect, CreateNewColorBrush(RGB(0, 0, 0))->brush);
@@ -146,11 +145,15 @@ void DrawConsoleIfNeeded(HDC hdcMem){
     SetTextAlign(hdcMem, TA_BASELINE | TA_LEFT);
     int ignoreFirst = FALSE;
     int curr_width = background_rect.right - background_rect.left;
-    int max_size = (int)((float)game_res[0]/(float)curr_width);
+    int max_size = (int)((float)curr_width/(float)fontWidth);
     while (currPos > 0 && linesDrawn < 10){
         // Get last line
         size_t size = 0;
-        while (console_out[currPos - size] != '\n' && currPos - size > 0 && size < max_size) size++;
+        while (console_out[currPos - size] != '\n' && currPos - size > 0) size++;
+        while (size > max_size){
+            size = size - max_size ;
+        }
+        if (currPos - size == 0) size++;
         if (size == 0) {
             // In case read is invalid still assume line was drawn
             linesDrawn++;
@@ -176,7 +179,11 @@ void DrawConsoleIfNeeded(HDC hdcMem){
         yAlign -= (spacing+fontHeight)/2;
         yAlign += -(fontHeight/2) + tm.tmAscent;
         TextOut(hdcMem, background_rect.left + spacing/2, yAlign, console_text, strlen(console_text));
-        currPos = currPos - size - 2;
+        if (console_out[currPos - size] == '\n'){
+            currPos = currPos - size - 1;
+        }else{
+            currPos = currPos - size;
+        }
         free(console_text);
         linesDrawn++;
     }

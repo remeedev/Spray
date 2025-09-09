@@ -244,6 +244,9 @@ void fullDebug(int argc, char **argv){
     }
     toggleDebug = !toggleDebug;
     char *val = toggleDebug ? "TRUE" : "FALSE";
+    PrintToConsole("Setting all values to: ");
+    PrintToConsole(val);
+    PrintToConsole("\n");
     char *falseArgv1[] = {"b_see_collisions", val};
     char *falseArgv2[] = {"b_showDebug", val};
     char *falseArgv3[] = {"b_artistOptions", val};
