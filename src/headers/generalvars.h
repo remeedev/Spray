@@ -3,6 +3,15 @@
 #ifndef generalvars
 #define generalvars
 
+typedef struct textNode {
+    char *value;
+    struct textNode *next;
+    struct textNode *child;
+}textNode;
+
+// Recursive search inside tree
+textNode *find_text_node(textNode *structure, char *value);
+
 int WindowWidth;
 int WindowHeight;
 

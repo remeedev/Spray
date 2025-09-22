@@ -1,5 +1,30 @@
 #include <windows.h>
 
+typedef struct textNode {
+    char *value;
+    struct textNode *next;
+    struct textNode *child;
+}textNode;
+
+// Recursive search inside tree
+textNode *find_text_node(textNode *structure, char *value){
+    // Check self for value
+    if (structure == NULL) return NULL;
+    if (strcmp(structure->value, value) == 0) return structure;
+
+    int found = FALSE;
+    textNode *tmp_resp;
+    tmp_resp = find_text_node(structure->child, value);
+    found = tmp_resp != NULL;
+    if (found){
+        goto return_tmp;
+    }
+    tmp_resp = find_text_node(structure->next, value);
+    found = found || tmp_resp != NULL;
+
+    return_tmp:
+    return tmp_resp;
+}
 
 int WindowWidth;
 int WindowHeight;

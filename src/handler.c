@@ -7,6 +7,7 @@
 #include "headers/console.h"
 #include "headers/generalvars.h"
 #include "headers/particles.h"
+#include "headers/credits.h"
 
 // WATERMARK NECESSARY DATA
 int watermarkShow = TRUE;
@@ -56,6 +57,8 @@ void startGameSystem(HWND hWnd, int screen_width, int screen_height){
     Resize(hWnd, screen_width, screen_height);
     LoadBrushes();
     startMainMenu();
+    init_credits();
+    build_credits();
 
     if (watermarkShow){
         loadWatermark();
@@ -81,7 +84,7 @@ void openOptions(){
 }
 
 void showCredits(){
-
+    showingCredits = TRUE;
 }
 
 void ForceGameMenu(){
@@ -92,7 +95,7 @@ void ForceGameMenu(){
 
 // GAME MENU INFORMATION
 char *menu_opts[] = {"Start Game", "Options", "Credits", "Quit Game", NULL};
-void (*menu_funcs[])() = {&startGame, &openOptions, &forceExit};
+void (*menu_funcs[])() = {&startGame, &openOptions, &showCredits, &forceExit};
 int currMenuOpt = 0;
 
 char *funText = "The cat's name is max!";
@@ -124,6 +127,10 @@ void drawGameMenu(){
 }
 
 void handleKEYDOWN(UINT key){
+    if (showingCredits){
+        showingCredits = FALSE;
+        return;
+    }
     if (in_level){
         HandleKeyDown(key);
         UIKeyDown(key);
@@ -166,6 +173,10 @@ void handleCHAR(UINT key){
 }
 
 void taskDraws(){
+    if (showingCredits){
+        draw_credits(hdcMem);
+        return;
+    }
     if (in_level){
         DrawGame();
         return;
@@ -217,6 +228,7 @@ void drawEvent(HWND hWnd){
 }
 
 void updateEvent(float dt){
+    update_credits(dt);
     if (in_level){
         if (!paused) Update(dt);
         if (paused) {
