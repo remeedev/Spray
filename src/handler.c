@@ -84,7 +84,7 @@ void openOptions(){
 }
 
 void showCredits(){
-    showingCredits = TRUE;
+    hide_show_credits();
 }
 
 void ForceGameMenu(){
@@ -128,7 +128,12 @@ void drawGameMenu(){
 
 void handleKEYDOWN(UINT key){
     if (showingCredits){
-        showingCredits = FALSE;
+        if (key == VK_SPACE){
+            switch_credit_speed(TRUE);
+        }
+        if (key == VK_ESCAPE){
+            hide_show_credits();
+        }
         return;
     }
     if (in_level){
@@ -159,6 +164,12 @@ void handleKEYDOWN(UINT key){
 }
 
 void handleKEYUP(UINT key){
+    if (showingCredits){
+        if (key == VK_SPACE){
+            switch_credit_speed(FALSE);
+        }
+        return;
+    }
     if (in_level){
         HandleKeyUp(key);
         return;
@@ -173,10 +184,8 @@ void handleCHAR(UINT key){
 }
 
 void taskDraws(){
-    if (showingCredits){
-        draw_credits(hdcMem);
-        return;
-    }
+    // Needs update for special feature
+    draw_credits(hdcMem);
     if (in_level){
         DrawGame();
         return;

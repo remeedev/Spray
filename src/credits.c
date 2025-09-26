@@ -6,7 +6,24 @@
 
 int showingCredits = FALSE;
 
+float credit_pos = 0;
+
 textNode *credit_saved = NULL;
+float credit_speed = 50.0;
+float min_credit_speed = 50.0;
+float max_credit_speed = 150.0;
+int sped_up = FALSE;
+
+void switch_credit_speed(int value){
+    sped_up = value;
+}
+
+void hide_show_credits(){
+    showingCredits = !showingCredits;
+    credit_pos = game_res[1];
+    switch_credit_speed(FALSE);
+}
+
 
 void add_to_credits(char *role, char *name){
     textNode *parent_node = find_text_node(credit_saved, role);
@@ -76,8 +93,6 @@ typedef struct textDraw{
 textDraw* saved_credits = NULL;
 size_t credit_len = 0;
 
-float credit_pos = 0;
-
 void init_credits(){
     credit_pos = game_res[1];
     add_to_credits("Programmer", "Remeedev");
@@ -145,6 +160,15 @@ void draw_credits(HDC hdc){
 }
 
 void update_credits(float dt){
+    if (sped_up && credit_speed < max_credit_speed){
+        credit_speed += dt*(credit_speed);
+        if (credit_speed > max_credit_speed){
+            credit_speed = max_credit_speed;
+        }
+    }
+    if (!sped_up && credit_speed > min_credit_speed){
+        credit_speed = min_credit_speed;
+    }
     if (showingCredits == FALSE) return;
-    credit_pos -= 100.0*dt;
+    credit_pos -= credit_speed*dt;
 }

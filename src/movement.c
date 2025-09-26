@@ -232,12 +232,14 @@ POINT get_transform_due(SpriteGroup* collisions, Sprite *sprite, int *grounded){
         int tY = bl || br ? collision_points.top_left.y - points.bot_left.y : collision_points.bot_left.y - points.top_left.y + 1;
         int tX = bl || ibr ? collision_points.top_right.x - points.top_left.x : collision_points.top_left.x - points.top_right.x;
         int c75 = abs(tY) < abs(tX);
+        // Horizontal sides
         if (((bl && tl) || (br && tr) || (itl && ibl) || (itr && ibr)) || (((bl && itr) || (br && itl)) && !c75)){
             points.bot_left.x += tX;
             points.bot_right.x += tX;
             points.top_left.x += tX;
             points.top_right.x += tX;
         }
+        // Top n Bottom
         if (((bl && br) || (itr && itl) || (ibr && ibl) || (tl && tr)) ||
         (((bl && itr) || (br && itl) || (tl && ibr) || (tr && ibl)) && c75)){
             points.bot_left.y += tY;
@@ -413,6 +415,7 @@ void UpdatePosition(float dt, SpriteGroup* collisions){
         }else{
             if (player_forces[1] > 0){
                 ChangeAnimationNoDir("falling", GetPlayerPtr());
+                particlesAtFeet();
             }
         }
         if (a)ChangeAnimationDirection("left", GetPlayerPtr());
