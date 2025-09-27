@@ -44,6 +44,7 @@ int is_fullscreen = FALSE;
 HWND mainWindow;
 
 char *gameVersion = "Beta 0.0.1";
+char *user_name = "testing";
 
 RECT memorySize;
 

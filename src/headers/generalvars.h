@@ -16,6 +16,7 @@ int WindowWidth;
 int WindowHeight;
 
 char *gameVersion;
+char *user_name;
 
 HWND mainWindow;
 

@@ -189,8 +189,17 @@ void DrawConsoleIfNeeded(HDC hdcMem){
     }
 }
 
+char *cmd_mem = NULL;
+
 void runCommand(){
-    if (console_in[0] == '\0')return;
+    if (console_in[0] == '\0') return;
+    if (cmd_mem) free(cmd_mem);
+    cmd_mem = (char *)malloc(strlen(console_in) + 1);
+    if (cmd_mem == NULL){
+        printf("Error allocating command memory!\n");
+        return;
+    }
+    strcpy(cmd_mem, console_in);
     // Processing
     size_t baseSize = 0;
     while (console_in[baseSize] != ' ' && console_in[baseSize] != '\0') baseSize++;
@@ -335,6 +344,10 @@ void handleCharConsole(UINT key){
 
 void handleKeyConsole(UINT key){
     if (key == VK_TAB){
+        if (!console_on){
+            console_on = !console_on;
+            return;
+        }
         if (recommendation == -1){
             console_on = !console_on;
         }else{
@@ -353,6 +366,10 @@ void handleKeyConsole(UINT key){
     }
     if (!console_on) return;
     if (key == VK_RETURN){
+        if (console_in[0] == '\0') {
+            console_on = FALSE;
+            return;
+        }
         runCommand();
         return;
     }
@@ -368,6 +385,16 @@ void handleKeyConsole(UINT key){
     if (key == VK_RIGHT){
         if (blip_pos < strlen(console_in)) blip_pos++;
         return;
+    }
+    if (key == VK_UP){
+        if (console_in) free(console_in);
+        console_in = (char *)malloc(strlen(cmd_mem) + 1);
+        blip_pos = strlen(cmd_mem);
+        if (console_in == NULL){
+            printf("Error writing previous command!\n");
+            return;
+        }
+        strcpy(console_in, cmd_mem);
     }
 }
 

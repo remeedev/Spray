@@ -9,10 +9,11 @@
 #include "headers/npc.h"
 #include "headers/bicycle.h"
 #include "headers/ui.h"
+#include "headers/savefile.h"
 
 typedef void (*cmdFunc)(int, char **);
 
-char *cmds[] = {"log", "get", "set", "clear", "game_ver", "quit_game", "list_commands", "toggle_debug", "setHarm", "setTime", NULL};
+char *cmds[] = {"log", "get", "set", "clear", "game_ver", "quit_game", "list_commands", "toggle_debug", "setHarm", "setTime", "saveFile", "test_save", NULL};
 
 typedef struct rec_node{
     char *recommendation;
@@ -307,5 +308,12 @@ void setTime(int argc, char **argv){
     PrintToConsole("\n");
 }
 
+void test_save(int argc, char **argv){
+    PrintToConsole("Reading test save file...\n");
+    read_save("/test_save.dat");
+    PrintToConsole("Read the save file and updated values!\n");
+    return;
+}
+
 // Corresponding funcs
-cmdFunc funcs[] = {&logToConsole, &getVar, &setVar, &clearConsole, &printGameVersion, &quitGame, &listCommands, &fullDebug, &changeSpriteStatus, &setTime};
+cmdFunc funcs[] = {&logToConsole, &getVar, &setVar, &clearConsole, &printGameVersion, &quitGame, &listCommands, &fullDebug, &changeSpriteStatus, &setTime, &write_save, &test_save};

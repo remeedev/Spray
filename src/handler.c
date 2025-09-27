@@ -8,6 +8,8 @@
 #include "headers/generalvars.h"
 #include "headers/particles.h"
 #include "headers/credits.h"
+#include "headers/savefile.h"
+#include "headers/throwables.h"
 
 // WATERMARK NECESSARY DATA
 int watermarkShow = TRUE;
@@ -77,6 +79,12 @@ void startGame(){
     loadLevel("./levels/level_0.txt");
     paused = FALSE;
     in_level = TRUE;
+    init_save();
+    save_int("health", &GetPlayerPtr()->health);
+    save_int("grenades", &grenade_count);
+    save_str("name", &user_name);
+    save_long("x", &GetPlayerPtr()->pos.x);
+    save_long("y", &GetPlayerPtr()->pos.y);
 }
 
 void openOptions(){
