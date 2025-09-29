@@ -3,6 +3,7 @@
 
 #include "headers/generalvars.h"
 #include "headers/level_loader.h"
+#include "headers/drawing.h"
 
 int showingCredits = FALSE;
 
@@ -13,6 +14,7 @@ float credit_speed = 50.0;
 float min_credit_speed = 50.0;
 float max_credit_speed = 150.0;
 int sped_up = FALSE;
+Sprite *game_logo = NULL;
 
 void switch_credit_speed(int value){
     sped_up = value;
@@ -94,8 +96,18 @@ typedef struct textDraw{
 textDraw* saved_credits = NULL;
 size_t credit_len = 0;
 
+void load_game_logo(){
+    if (game_logo != NULL) return;
+    game_logo = (Sprite *)malloc(sizeof(Sprite));
+    int upscale = 8;
+    int cx = 60*upscale;
+    int x = (int)(((double)game_res[0]-(double)cx)/2.0);
+    CreateImgSprite(game_logo, x, 0, cx, 30*upscale, "./assets/ui/game_logo.png", upscale);
+}
+
 void init_credits(){
     credit_pos = game_res[1];
+    load_game_logo();
     add_to_credits("Programmer", "Remeedev");
     add_to_credits("Artist", "Remeedev");
 }
@@ -140,6 +152,9 @@ void draw_credits(HDC hdc){
     int yLevel = (int)credit_pos;
     SetTextAlign(hdc, TA_TOP | TA_CENTER);
     int xLevel = game_res[0] / 2;
+    game_logo->pos.y = yLevel;
+    yLevel += game_logo->size.cy + 15;
+    PaintSprite(hdc, game_logo);
 
     textDraw *curr = saved_credits;
     while (curr){
@@ -147,8 +162,10 @@ void draw_credits(HDC hdc){
         if (curr->font_type == GameFont) yLevel += gameFontMetrics.tmHeight;
         TextOut(hdc, xLevel, yLevel, curr->text, strlen(curr->text));
         if (curr->font_type == GameFont){
+            SetTextColor(hdc, undermined_text_color);
             yLevel += gameFontMetrics.tmHeight;
         }else{
+            SetTextColor(hdc, regular_text_color);
             yLevel += smallFontMetrics.tmHeight;
         }
         curr = curr->next;
