@@ -9,6 +9,7 @@ SO NOW ITS CALLED BICYCLE
 #include "headers/level_loader.h"
 #include "headers/drawing.h"
 #include "headers/console.h"
+#include "headers/savefile.h"
 
 #include <windows.h>
 #include <stdio.h>
@@ -31,8 +32,17 @@ double time_between_clouds = 3.0;
 double time_since_cloud = 3.0;
 
 int cloud_count = 5;
+int saved_X = FALSE;
 
 void startDayCycle(HWND hwnd){
+    if (!saved_X){
+        if (save_int("mountain_x", &mountainX) == FALSE){
+            printf("Unable to save mountain_x\n");
+        }
+        if (save_int("assumed_level", &assumed_level) == FALSE){
+            printf("Unable to save assumed_level!\n");
+        }
+    }
     mountains = (Sprite *)malloc( sizeof(Sprite) );
     if (mountains == NULL){
         printf("Error loading the image of the mountains!\n");
@@ -89,8 +99,6 @@ void endDayCycle(){
     DeleteObject(gradient);
     DeleteDC(hdc_gradient);
 }
-
-// TODO: FIX MOUNTAINS WHEN GOING BACK A LEVEL
 
 double relative_movement(){
     return (( (double)(GetPlayerPos().x) / (double)game_res[1] )*0.01)*(double)game_res[0];
@@ -163,6 +171,8 @@ void drawDayCycle(HDC hdc){
         BitBlt(hdc, 0, gradient_height - shownHeight, game_res[0], game_res[1], hdc_gradient, 0, 0, SRCCOPY);
     }
     mountains->pos.x = mountainX - relative_movement();
+    if (mountains->pos.x > 0)mountains->pos.x = 0;
+    if (mountains->pos.x + mountains->size.cx < game_res[1]) mountains->pos.x = game_res[1] - mountains->size.cx;
     if (clouds) PaintSpriteGroup(hdc, clouds);
     PaintSprite(hdc, mountains);
 }

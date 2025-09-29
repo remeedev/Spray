@@ -2,14 +2,17 @@
 #include "headers/level_loader.h"
 #include "headers/generalvars.h"
 #include "headers/throwables.h"
+#include "headers/the_chronic.h"
 
 #include <windows.h>
 #include <stdio.h>
 
 Sprite *healthJar = NULL;
 Sprite *sprayCan = NULL;
+Sprite *weedBag = NULL;
 RECT background_rect = {0, 0, 0, 0};
 POINT grenade_text;
+POINT weed_text;
 
 int artistOptions = FALSE;
 
@@ -24,6 +27,11 @@ void startUI(){
         printf("There was an error allocating space for the ui spray can!\n");
         return;
     }
+    weedBag = (Sprite *)malloc(sizeof( Sprite ));
+    if (weedBag == NULL){
+        printf("There was an error allocating space for the ui spray can!\n");
+        return;
+    }
     SIZE AssetSize = {64, 64};
     int margin = 25;
     int upscale = 4;
@@ -32,9 +40,13 @@ void startUI(){
     background_rect.top = healthJar->pos.y + (2 * upscale);
     background_rect.bottom = background_rect.top + AssetSize.cy - (3 * upscale);
     background_rect.right = background_rect.left + AssetSize.cx - (4 * upscale);
+
     CreateImgSprite(sprayCan, game_res[0] - margin - AssetSize.cx, margin, AssetSize.cx, AssetSize.cy, "./assets/ui/spray_can.png", 4);
     grenade_text.x = game_res[0] - margin - AssetSize.cx;
     grenade_text.y = margin + (int)(((float)AssetSize.cy)*(3.0/4.0));
+    CreateImgSprite(weedBag, game_res[0] - margin - AssetSize.cx, margin + sprayCan->size.cy + 15, AssetSize.cx, AssetSize.cy, "./assets/ui/weed_bag.png", 4);
+    weed_text.x = game_res[0] - margin - AssetSize.cx - 10;
+    weed_text.y = margin + (int)(((float)AssetSize.cy)*(3.0/4.0)) + sprayCan->size.cy + 15;
 }
 
 void drawPrompt(HDC hdc, char *prompt){
@@ -113,6 +125,10 @@ void drawUI(HDC hdc){
     SetBkMode(hdc, TRANSPARENT);
     TextOut(hdc, grenade_text.x, grenade_text.y, count_text, strlen(count_text));
     PaintSprite(hdc, sprayCan);
+    PaintSprite(hdc, weedBag);
+    char weed_count_text[5];
+    sprintf(weed_count_text, "%d", weed_bags);
+    TextOut(hdc, weed_text.x, weed_text.y, weed_count_text, strlen(weed_count_text));
     if (artistOptions && current_level_name) {
         POINT mouse;
         GetCursorPos(&mouse);

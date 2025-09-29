@@ -3,3 +3,6 @@
 ./assets/copbacker.png
 -
 1: Hola comadreja
+$(weed_sale)
+2: Tiene alguna yerba?
+1: No :(

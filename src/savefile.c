@@ -13,6 +13,7 @@ DATATYPES (denoted by single char of ascii):
 #include <math.h>
 #include <string.h>
 #include <windows.h>
+#include <dirent.h>
 
 // Time srand was already set
 #include <stdlib.h>
@@ -120,14 +121,16 @@ int hash_key(char *key_name){
     return pos;
 }
 
-data_lookup* expand_lookup(data_lookup* l_u);
+void expand_lookup(data_lookup** l_u);
 
-void add_to_lookup(data_lookup *l_u, char *name, void *assigned_value, char value_type){
+// returns if saved value
+int add_to_lookup(data_lookup **l_up, char *name, void *assigned_value, char value_type){
+    data_lookup *l_u = *l_up;
     int add_position = hash_key(name);
     if (l_u->searches[add_position]->key != NULL){
         printf("Double assignment to same key name!\n");
         printf("Tried to write %s but found %s\n", name, l_u->searches[add_position]->key);
-        return;
+        return FALSE;
     }
     save_data *set_pos = l_u->searches[add_position];
     set_pos->key = (char *)malloc(strlen(name) + 1);
@@ -136,8 +139,9 @@ void add_to_lookup(data_lookup *l_u, char *name, void *assigned_value, char valu
     set_pos->datatype = value_type;
     l_u->size++;
     if (l_u->size == l_u->capacity){
-        l_u = expand_lookup(l_u);
+        expand_lookup(l_up);
     }
+    return TRUE;
 }
 
 void remove_from_lookup(data_lookup *l_u, char *key){
@@ -158,37 +162,44 @@ save_data* get_from_lookup(data_lookup *l_u, char *key){
     return NULL;
 }
 
-data_lookup* expand_lookup(data_lookup* l_u){
-    if (l_u == NULL) return NULL;
+void expand_lookup(data_lookup** l_up){
+    data_lookup* l_u = *l_up;
+    if (l_u == NULL) return;
     data_lookup *tmp = create_empty_save(l_u->capacity * 2);
     int i = 0;
     while (i < l_u->capacity){
         if (l_u->searches[i]->key != NULL){
-            add_to_lookup(tmp, l_u->searches[i]->key, l_u->searches[i]->obj, l_u->searches[i]->datatype);
+            add_to_lookup(&tmp, l_u->searches[i]->key, l_u->searches[i]->obj, l_u->searches[i]->datatype);
         }
+        i++;
     }
     delete_save_lookup(l_u);
-    return tmp;
+    *l_up = tmp;
 }
 
-void save_int(char *name, int *value){
-    add_to_lookup(curr_save, name, value, (char) 1);
+int save_int(char *name, int *value){
+    if (curr_save == NULL) curr_save = create_empty_save(7);
+    return add_to_lookup(&curr_save, name, value, (char) 1);
 }
 
-void save_float(char *name, float *value){
-    add_to_lookup(curr_save, name, value, (char) 2);
+int save_float(char *name, float *value){
+    if (curr_save == NULL) curr_save = create_empty_save(7);
+    return add_to_lookup(&curr_save, name, value, (char) 2);
 }
 
-void save_double(char *name, double *value){
-    add_to_lookup(curr_save, name, value, (char) 3);
+int save_double(char *name, double *value){
+    if (curr_save == NULL) curr_save = create_empty_save(7);
+    return add_to_lookup(&curr_save, name, value, (char) 3);
 }
 
-void save_str(char *name, char **value){
-    add_to_lookup(curr_save, name, value, (char) 4);
+int save_str(char *name, char **value){
+    if (curr_save == NULL) curr_save = create_empty_save(7);
+    return add_to_lookup(&curr_save, name, value, (char) 4);
 }
 
-void save_long(char *name, long *value){
-    add_to_lookup(curr_save, name, value, (char) 5);
+int save_long(char *name, long *value){
+    if (curr_save == NULL) curr_save = create_empty_save(7);
+    return add_to_lookup(&curr_save, name, value, (char) 5);
 }
 
 size_t get_data_size(char a){
@@ -234,8 +245,8 @@ unsigned char *raw_long(long a){
     return out;
 }
 
-void write_save(){
-    char *save_name = "/test_save.dat";
+void write_save_custom(data_lookup *l_u, char *save_name){
+    if (l_u == NULL) return;
     char *file_name = (char *)malloc(strlen(save_folder) + strlen(save_name) + 1);
     if (file_name == NULL){
         printf("There was an error allocating space for save folder!\n");
@@ -249,104 +260,108 @@ void write_save(){
     size_t data_length = 0;
 
     int i = 0;
-    while (i < curr_save->capacity){
-        if (curr_save->searches[i]->key != NULL){
-            save_data *elem = curr_save->searches[i];
-            size_t data_size = get_data_size(elem->datatype);
-            size_t value_len = 0;
-            if (elem->datatype == (char)4){
-                char *elem_value = *(char **)(elem->obj);
-                value_len = strlen(elem_value);
-            }else{
-                value_len = data_size;
-            }
-            size_t write_length = sizeof(int) + strlen(elem->key) + sizeof(char) + sizeof(int) + value_len; // Size of name, name, datatype, value_len, value
-            unsigned char *write_data = (unsigned char *)malloc(write_length);
-            if (write_data == NULL){
-                printf("Error creating the save file!\n");
+    int written_save = 0;
+    while (i < l_u->capacity && written_save < l_u->size){
+        if (l_u->searches[i]->key == NULL){
+            i++;
+            continue;
+        }
+        written_save++;
+        save_data *elem = l_u->searches[i];
+        size_t data_size = get_data_size(elem->datatype);
+        size_t value_len = 0;
+        if (elem->datatype == (char)4){
+            char *elem_value = *(char **)(elem->obj);
+            value_len = strlen(elem_value);
+        }else{
+            value_len = data_size;
+        }
+        size_t write_length = sizeof(int) + strlen(elem->key) + sizeof(char) + sizeof(int) + value_len; // Size of name, name, datatype, value_len, value
+        unsigned char *write_data = (unsigned char *)malloc(write_length);
+        if (write_data == NULL){
+            printf("Error creating the save file!\n");
+            return;
+        }
+        int write_pos = 0;
+        
+        // Write the name size
+        unsigned char *raw_name_size = raw_int(strlen(elem->key));
+        for (int i = 0; i < 4; i++){
+            write_data[write_pos] = raw_name_size[write_pos];
+            write_pos++;
+        }
+        free(raw_name_size);
+        // Write the name
+        for (int i = 0; i < strlen(elem->key); i++){
+            write_data[write_pos] = elem->key[i];
+            write_pos++;
+        }
+        // Write the data type
+        write_data[write_pos++] = elem->datatype;
+
+        // Write the value len
+        unsigned char *raw_data_size = raw_int(value_len);
+        for (int i = 0; i < 4; i++){
+            write_data[write_pos] = raw_data_size[i];
+            write_pos++;
+        }
+        free(raw_data_size);
+        unsigned char *raw_data_value = NULL;
+        switch (elem->datatype){
+            case 1: ;
+                int int_value_ptr = *(int *)elem->obj;
+                raw_data_value = raw_int(int_value_ptr);
+                break;
+            case 2: ;
+                float float_value_ptr = *(float *)elem->obj;
+                raw_data_value = raw_float(float_value_ptr);
+                break;
+            case 3: ;
+                double double_value_ptr = *(double *)elem->obj;
+                raw_data_value = raw_double(double_value_ptr);
+                break;
+            case 4: ;
+                char *value_str = *(char **)elem->obj;
+                raw_data_value = (char *)value_str;
+                break;
+            case 5: ;
+                long long_value_ptr = *(long *)elem->obj;
+                raw_data_value = raw_long(long_value_ptr);
+                break;
+            default: ;
+                printf("Found an unknown datatype in the save file in %s! [%d]\n", elem->key, elem->datatype);
+                return;
+        }
+        // Write the value
+        for (int i = 0; i < value_len; i++){
+            write_data[write_pos] = raw_data_value[i];
+            write_pos++;
+        }
+        if (elem->datatype != (char) 4){
+            free(raw_data_value);
+        }
+
+        // Write the data to the out char
+        if (raw_data == NULL){
+            raw_data = (unsigned char *)malloc(write_length);
+            if (raw_data == NULL){
+                printf("There was an error allocating memory for raw data!\n");
                 return;
             }
-            int write_pos = 0;
-            
-            // Write the name size
-            unsigned char *raw_name_size = raw_int(strlen(elem->key));
-            for (int i = 0; i < 4; i++){
-                write_data[write_pos] = raw_name_size[write_pos];
-                write_pos++;
+            for (int i = 0; i < write_length; i++){
+                raw_data[data_length] = write_data[i];
+                data_length++;
             }
-            free(raw_name_size);
-            // Write the name
-            for (int i = 0; i < strlen(elem->key); i++){
-                write_data[write_pos] = elem->key[i];
-                write_pos++;
+        }else{
+            unsigned char *tmp = (unsigned char *)realloc(raw_data, data_length + write_length);
+            if (tmp == NULL){
+                printf("There was an error reallocating memory for raw data!\n");
+                return;
             }
-            // Write the data type
-            write_data[write_pos++] = elem->datatype;
-
-            // Write the value len
-            unsigned char *raw_data_size = raw_int(value_len);
-            for (int i = 0; i < 4; i++){
-                write_data[write_pos] = raw_data_size[i];
-                write_pos++;
-            }
-            free(raw_data_size);
-            unsigned char *raw_data_value = NULL;
-            switch (elem->datatype){
-                case 1: ;
-                    int int_value_ptr = *(int *)elem->obj;
-                    raw_data_value = raw_int(int_value_ptr);
-                    break;
-                case 2: ;
-                    float float_value_ptr = *(float *)elem->obj;
-                    raw_data_value = raw_float(float_value_ptr);
-                    break;
-                case 3: ;
-                    double double_value_ptr = *(double *)elem->obj;
-                    raw_data_value = raw_double(double_value_ptr);
-                    break;
-                case 4: ;
-                    char *value_str = *(char **)elem->obj;
-                    raw_data_value = (char *)value_str;
-                    break;
-                case 5: ;
-                    long long_value_ptr = *(long *)elem->obj;
-                    raw_data_value = raw_long(long_value_ptr);
-                    break;
-                default: ;
-                    printf("Found an unknown datatype in the save file!\n");
-                    return;
-            }
-            // Write the value
-            for (int i = 0; i < value_len; i++){
-                write_data[write_pos] = raw_data_value[i];
-                write_pos++;
-            }
-            if (elem->datatype != (char) 4){
-                free(raw_data_value);
-            }
-
-            // Write the data to the out char
-            if (raw_data == NULL){
-                raw_data = (unsigned char *)malloc(write_length);
-                if (raw_data == NULL){
-                    printf("There was an error allocating memory for raw data!\n");
-                    return;
-                }
-                for (int i = 0; i < write_length; i++){
-                    raw_data[data_length] = write_data[i];
-                    data_length++;
-                }
-            }else{
-                unsigned char *tmp = (unsigned char *)realloc(raw_data, data_length + write_length);
-                if (tmp == NULL){
-                    printf("There was an error reallocating memory for raw data!\n");
-                    return;
-                }
-                raw_data = tmp;
-                for (int i = 0; i < write_length; i++){
-                    raw_data[data_length] = write_data[i];
-                    data_length++;
-                }
+            raw_data = tmp;
+            for (int i = 0; i < write_length; i++){
+                raw_data[data_length] = write_data[i];
+                data_length++;
             }
         }
         i++;
@@ -354,6 +369,11 @@ void write_save(){
     fwrite(raw_data, sizeof(unsigned char), data_length, ptr);
 
     fclose(ptr);
+}
+
+void write_save(){
+    char *save_name = "/test_save.dat";
+    write_save_custom(curr_save, save_name);
 }
 
 void read_save(char *save_name){
@@ -404,4 +424,106 @@ void read_save(char *save_name){
         free(name);
     }
     fclose(ptr);
+}
+
+int get_saves(char ***save_names, char ***file_names){
+    DIR *dr = opendir(save_folder);
+    char **names = NULL;
+    char **files_to_save = NULL;
+    struct dirent *de;
+    int save_count = 0;
+    while ((de = readdir(dr)) != NULL){
+        if (de->d_name[0] == '.') continue;
+        char *file_name = de->d_name;
+        int pos = 0;
+        while (file_name[pos] != '.') pos++;
+        char *save_name = (char *)malloc(pos + 1);
+        pos = 0;
+        while (file_name[pos] != '.') {
+            if (file_name[pos] == '_'){
+                save_name[pos] = ' ';
+            }else{
+                save_name[pos] = file_name[pos];
+            }
+            pos++;
+        }
+        save_name[pos++] = '\0';
+        char *ext = (char *)malloc(4);
+        if (ext == NULL){
+            printf("There was an error allocating space for extension!\n");
+            return 0;
+        }
+        for (int i = 0; i < 3; i++){
+            ext[i] = de->d_name[pos++];
+        }
+        ext[3] = '\0';
+        if (strcmp(ext, "dat") != 0) continue;
+        free(ext);
+        int curr_pos = 0;
+        save_count++;
+        if (names == NULL){
+            names = (char **)malloc(sizeof(char **));
+            names[0] = save_name;
+        }else{
+            char **tmp = (char **)realloc(names, sizeof(char **)*save_count);
+            if (tmp == NULL){
+                printf("There was an error reallocating memory in get_saves!\n");
+                return 0;
+            }
+            names = tmp;
+            names[save_count - 1] = save_name;
+        }
+        char *file_path = (char *)malloc(strlen(de->d_name) + 2);
+        file_path[0] = '/';
+        for (int i = 0; i < strlen(de->d_name); i++){
+            file_path[i+1] = de->d_name[i];
+        }
+        file_path[strlen(de->d_name) + 1] = '\0';
+        if (files_to_save == NULL){
+            files_to_save = (char **)malloc(sizeof(char **));
+            files_to_save[0] = file_path;
+        }else{
+            char **tmp = (char **)realloc(files_to_save, sizeof(char **)*save_count);
+            if (tmp == NULL){
+                printf("There was an error reallocating memory in get_saves!\n");
+                return 0;
+            }
+            files_to_save = tmp;
+            files_to_save[save_count - 1] = file_path;
+        }
+    }
+    *save_names = names;
+    *file_names = files_to_save;
+    return save_count;
+}
+
+char* create_brand_new_save(){
+    FILE *src_file = fopen("./new_save.dat", "rb");
+    if (src_file == NULL){
+        printf("There has been an error opening default save file!\n");
+        return NULL;
+    }
+    char *save_name = "/unnamed_save.dat";
+    char *dst_name = (char *)malloc(strlen(save_folder) + strlen(save_name) + 1);
+    if (dst_name == NULL){
+        printf("There was an error allocating space for save folder!\n");
+        fclose(src_file);
+        return NULL;
+    }
+    strcpy(dst_name, save_folder);
+    strcat(dst_name, save_name);
+    FILE *dst_file = fopen(dst_name, "wb");
+    free(dst_name);
+    if (dst_file == NULL){
+        printf("There has been an error creating save file!\n");
+        fclose(src_file);
+        return NULL;
+    }
+    int curr_char;
+    while ((curr_char = fgetc(src_file)) != EOF){
+        fputc(curr_char, dst_file);
+    }
+    fclose(dst_file);
+    fclose(src_file);
+    return save_name;
 }

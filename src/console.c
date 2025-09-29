@@ -6,6 +6,7 @@
 #include "headers/generalvars.h"
 #include "headers/console_cmd.h"
 #include "headers/level_loader.h"
+#include "headers/savefile.h"
 
 POINT console_pos = {0, 0};
 
@@ -52,6 +53,12 @@ void PrintToConsole(char *text){
         console_out[startT + i] = text[i];
     }
     console_out[startT + strlen(text)] = '\0';
+}
+
+int console_allow = TRUE;
+
+void save_console_allow(){
+    save_int("console_allow", &console_allow);
 }
 
 void InitConsole(){
@@ -154,7 +161,7 @@ void DrawConsoleIfNeeded(HDC hdcMem){
             size = size - max_size ;
         }
         if (currPos - size == 0) size++;
-        if (size == 0) {
+        if (size <= 0) {
             // In case read is invalid still assume line was drawn
             linesDrawn++;
             currPos--;
@@ -162,7 +169,7 @@ void DrawConsoleIfNeeded(HDC hdcMem){
         }
         char *console_text = (char *)malloc(size + 1);
         if (console_text == NULL){
-            printf("Error allocating memory for variable!\n");
+            return;
         }
         for (int i = 0; i < size; i++){
             console_text[size - i - 1] = console_out[currPos - i];
@@ -212,9 +219,13 @@ void runCommand(){
     int argc = 0;
     char **argv = NULL;
     int reading = FALSE;
-    int pos = baseSize + 1;
+    int pos = baseSize;
     while (console_in[pos] != '\0'){
         char stopper = ' ';
+        if (console_in[pos] == stopper){
+            pos++;
+            continue;
+        }
         if (console_in[pos] == '"') {
             stopper = '"';
             pos++;
@@ -343,6 +354,7 @@ void handleCharConsole(UINT key){
 }
 
 void handleKeyConsole(UINT key){
+    if (console_allow == FALSE) return; // Have to add option to add the console to game save
     if (key == VK_TAB){
         if (!console_on){
             console_on = !console_on;

@@ -51,8 +51,10 @@ int debug = FALSE;
 // ======== controls ===========
 void HandleKeyDown(UINT key){
     if (console_on) return;
-    if (key == VK_SPACE && talking) conversationsNext();
-    if (talking) return;
+    if (talking){
+        handle_key_down_conv(key);
+        return;
+    }
     if (key == 'F') {
         if (searchRedirect(TRUE) == FALSE){
             conversationsNext();

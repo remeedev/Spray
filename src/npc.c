@@ -8,18 +8,11 @@
 #include "headers/movement.h"
 #include "headers/generalvars.h"
 #include "headers/level_loader.h"
+#include "headers/the_chronic.h"
 
 float NPC_speed = 750.0;
 
 float conv_top = 3.0/5.0;
-
-// Conversation definition
-typedef struct conversation {
-    wchar_t *line;
-    Sprite* image;
-    size_t end;
-    struct conversation *next;
-} conversation;
 
 typedef struct NPC {
     Sprite* npcSprite;
@@ -52,6 +45,11 @@ char *addPath(char *path, char *file){
 
 int min_conv_dist = 200;
 int conv_padd = 50;
+
+typedef void (*conversation_creator)(conversation *, SpriteGroup *);
+
+char *option_assignment[] = {"weed_sale", NULL};
+conversation_creator option_funcs[] = {&create_weed_sale};
 
 void loadConvoToLastSprite(char *file_name){
     if (chat_bubble == NULL){
@@ -91,6 +89,38 @@ void loadConvoToLastSprite(char *file_name){
                 curr->next = dum;
             }
         }else{
+            if (buffer[0] == '$' && buffer[1] == '('){
+                char *saved = NULL;
+                size_t var_size = 0;
+                int curr_pos = 2;
+                while (buffer[curr_pos] != ')'){
+                    curr_pos++;
+                    var_size++;
+                }
+                saved = (char *)malloc(var_size + 1);
+                if (saved == NULL){
+                    printf("There was an error allocating for var name!\n");
+                    return;
+                }
+                curr_pos = 2;
+                int save_pos = 0;
+                while (buffer[curr_pos] != ')'){
+                    saved[save_pos] = buffer[curr_pos];
+                    save_pos++;
+                    curr_pos++;
+                }
+                saved[var_size] = '\0';
+                int option_loading = 0;
+                while (option_assignment[option_loading] != NULL){
+                    if (strcmp(option_assignment[option_loading], saved)==0){
+                        conversation_creator creator_func = option_funcs[option_loading];
+                        creator_func(out, characters);
+                    }
+                    option_loading++;
+                }
+                free(saved);
+                continue;
+            }
             conversation *convo = (conversation *)malloc(sizeof(conversation));
             size_t num_length = 0;
             for (size_t i = 0; buffer[i] != ':'; i++)num_length++;
@@ -119,6 +149,11 @@ void loadConvoToLastSprite(char *file_name){
             convo->end = strlen(line);
             convo->next = NULL;
             convo->image = currChar->sprite;
+            convo->option_count = 0;
+            convo->option_handler = NULL;
+            convo->option_selected = 0;
+            convo->options = NULL;
+            convo->skip_check = NULL;
             if (out){
                 conversation *curr = out;
                 while (curr->next != NULL) curr = curr->next;
@@ -146,22 +181,52 @@ int distToPlayer(Sprite *sprite);
 void conversationsNext(){
     if (conv_playing != NULL){
         conv_playing = conv_playing->next;
-        if (conv_playing) return;
+        if (conv_playing) {
+            if (conv_playing->skip_check != NULL){
+                if (conv_playing->skip_check()){
+                    conv_playing = conv_playing->next;
+                }
+            }
+            return;
+        }
         NPCGroup *curr = loaded_NPCs;
-        while (curr->npc->talking == FALSE)curr = curr->next;
+        while (curr->npc->talking == FALSE) curr = curr->next;
         curr->npc->talking = FALSE;
         curr->npc->talked = TRUE;
         talking = FALSE;
         return;
-    }
-    NPCGroup *curr = loaded_NPCs;
-    while (curr != NULL){
-        if (curr->npc->conv && distToPlayer(curr->npc->npcSprite) < min_conv_dist){
-            conv_playing = curr->npc->conv;
-            curr->npc->talking = TRUE;
-            talking = TRUE;
+    }else{
+        NPCGroup *curr = loaded_NPCs;
+        while (curr != NULL){
+            if (curr->npc->conv && distToPlayer(curr->npc->npcSprite) < min_conv_dist){
+                conv_playing = curr->npc->conv;
+                curr->npc->talking = TRUE;
+                talking = TRUE;
+            }
+            curr = curr->next;
         }
-        curr = curr->next;
+    }
+}
+
+void handle_key_down_conv(UINT key){
+    if (key == VK_SPACE && conv_playing->options == NULL){
+        conversationsNext();
+        return;
+    }
+    if (conv_playing->options){
+        if (key == VK_SPACE || key == VK_RETURN){
+            conv_playing = conv_playing->option_handler(conv_playing);
+        }
+        if (key == VK_UP){
+            if (conv_playing->option_selected > 0){
+                conv_playing->option_selected--;
+            }
+        }
+        if (key == VK_DOWN){
+            if (conv_playing->option_selected < conv_playing->option_count - 1){
+                conv_playing->option_selected++;
+            }
+        }
     }
 }
 
@@ -536,6 +601,10 @@ void drawAllNPCs(HDC hdc){
         DrawAnimatedSprite(hdc, curr->npc->npcSprite->brush->anim_group, curr->npc->npcSprite->pos.x, curr->npc->npcSprite->pos.y);
         curr = curr->next;
     }
+    
+}
+
+void drawConversationIfNeeded(HDC hdc){
     if (conv_playing != NULL){
         // Background Black Box
         RECT boundingBox;
@@ -552,14 +621,37 @@ void drawAllNPCs(HDC hdc){
         int midHeight = boundingBox.bottom - ((float)(boundingBox.bottom-boundingBox.top)/2.0f);
         int midWidth = boundingBox.right - ((float)(boundingBox.right-boundingBox.left)/2.0f);
         SelectObject(hdc, GameFont);
-        SetTextAlign(hdc, TA_CENTER);
         SetTextColor(hdc, RGB(255, 255, 255));
         SetBkMode(hdc, TRANSPARENT);
-        TextOutW(hdc, midWidth, midHeight, conv_playing->line, conv_playing->end);
-        char *text = "Press \"Space\" to continue...";
-        SetTextAlign(hdc, TA_BASELINE);
-        SelectObject(hdc, SmallFont);
-        TextOut(hdc, 0, WindowHeight-10, text, strlen(text));
+        if (conv_playing->options == NULL){
+            SetTextAlign(hdc, TA_CENTER);
+            TextOutW(hdc, midWidth, midHeight, conv_playing->line, conv_playing->end);
+            char *text = "Press \"Space\" to continue...";
+            SetTextAlign(hdc, TA_BASELINE);
+            SelectObject(hdc, SmallFont);
+            TextOut(hdc, 0, WindowHeight-10, text, strlen(text));
+        }else{
+            SetTextAlign(hdc, TA_TOP | TA_LEFT);
+            int left_align = boundingBox.left + 5;
+            int top_line = boundingBox.top + 5;
+            TextOutW(hdc, left_align, top_line, conv_playing->line, conv_playing->end);
+
+            TEXTMETRICW tm;
+            GetTextMetricsW(hdc, &tm);
+            left_align += 15;
+            for (int i = 0; i < conv_playing->option_count; i++){
+                top_line += tm.tmHeight + tm.tmAscent;
+                if (conv_playing->option_selected == i){
+                    SetTextColor(hdc, highlight_text_color);
+                }else{
+                    SetTextColor(hdc, regular_text_color);
+                }
+                TextOut(hdc, left_align, top_line, ">", 1);
+                TextOut(hdc, left_align + 2*tm.tmAveCharWidth, top_line, conv_playing->options[i], strlen(conv_playing->options[i]));
+            }
+
+
+        }
     }
 }
 

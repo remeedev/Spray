@@ -241,6 +241,12 @@ void fullDebug(int argc, char **argv){
             PrintToConsole("This function sets a variable within the game system.\nUsage: 'set <var_name> <value>'\nRun 'get -a' to see variables available\n");
             return;
         }
+        for (int i = 0; i < argc; i++){
+            printf("%d : %s [%d]\n", i, argv[i], argv[i][0]);
+            PrintToConsole(argv[i]);
+            PrintToConsole(", ");
+        }
+        PrintToConsole("\n");
         return;
     }
     toggleDebug = !toggleDebug;

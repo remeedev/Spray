@@ -1,10 +1,12 @@
 #include <windows.h>
+#include "drawing.h"
 
 #ifndef npc
 #define npc
 
 // CONVERSATION LOAD
 void loadConvoToLastSprite(char *file_name);
+void handle_key_down_conv(UINT key);
 void conversationsNext();
 
 // Conversation end
@@ -14,6 +16,7 @@ void loadEnemyNPC(char *path, int x, int y, int cx, int cy, int upscale);
 void loadFriendlyNPC(char *path, int x, int y, int cx, int cy, int upscale);
 
 void drawAllNPCs(HDC hdc);
+void drawConversationIfNeeded(HDC hdc);
 
 void clearSprites();
 

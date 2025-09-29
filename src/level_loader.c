@@ -542,6 +542,7 @@ void DrawGame(){
         drawGrenades(hdcMem);
         drawParticles(hdcMem);
         drawUI(hdcMem);
+        drawConversationIfNeeded(hdcMem);
     }else{
         RECT rcPaint;
         rcPaint.top = 0;
@@ -630,7 +631,10 @@ int searchRedirect(int forceRedirect){
 
 void Update(float dt){
     if (strcmp(prev_level_loaded, current_level_name) != 0){
-        if (current_level_name) loadLevel(current_level_name);
+        if (current_level_name) {
+            EndLastLevel();
+            loadLevel(current_level_name);
+        }
     }
     updateGrenades(dt, collisions);
     UpdatePosition(dt, collisions);

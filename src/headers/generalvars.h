@@ -1,7 +1,20 @@
 #include <windows.h>
+#include "drawing.h"
 
 #ifndef generalvars
 #define generalvars
+
+typedef struct conversation {
+    wchar_t *line;
+    Sprite* image;
+    size_t end;
+    char **options;
+    size_t option_count;
+    int option_selected;
+    int (*skip_check)(void);
+    struct conversation *(*option_handler)(struct conversation *);
+    struct conversation *next;
+} conversation;
 
 typedef struct textNode {
     char *value;

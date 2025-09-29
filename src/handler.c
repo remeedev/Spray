@@ -10,6 +10,7 @@
 #include "headers/credits.h"
 #include "headers/savefile.h"
 #include "headers/throwables.h"
+#include "headers/the_chronic.h"
 
 // WATERMARK NECESSARY DATA
 int watermarkShow = TRUE;
@@ -55,31 +56,65 @@ void loadWatermark(){
 int in_level = FALSE;
 
 void startGameSystem(HWND hWnd, int screen_width, int screen_height){
+    InitPlayer();
     init_save();
+    start_weed_convos();
     StartGraphics(hWnd);
     Resize(hWnd, screen_width, screen_height);
     LoadBrushes();
     startMainMenu();
     init_credits();
     build_credits();
+    save_console_allow();
 
     if (watermarkShow){
         loadWatermark();
     }
 }
 
+char **save_names = NULL;
+char **save_files = NULL;
+int save_count;
+int selecting_save = FALSE;
+int current_save = 0;
+
+void startGame();
+
+void selectSave(){
+    if (save_names){
+        for (int i = 0; i < save_count; i++){
+            free(save_names[i]);
+            free(save_files[i]);
+        }
+        free(save_names);
+        free(save_files);
+    }
+    save_count = get_saves(&save_names, &save_files);
+    if (save_count == 0) {
+        char *save_name = create_brand_new_save();
+        startGame();
+        read_save(save_name);
+        selecting_save = FALSE;
+        return;
+    }
+    selecting_save = TRUE;
+}
+
+int started_game = FALSE;
+
 void startGame(){
-    InitPlayer();
     endMainMenu();
     POINT zero_pos;
+    loadLevel("./levels/level_0.txt");
     zero_pos.x = 0;
     zero_pos.y = 0;
     SetPlayerPos(zero_pos);
     player_forces[0] = 0;
     player_forces[1] = 0;
-    loadLevel("./levels/level_0.txt");
     paused = FALSE;
     in_level = TRUE;
+    if (started_game) return;
+    started_game = TRUE;
     save_int("health", &GetPlayerPtr()->health);
     save_int("grenades", &grenade_count);
     save_str("name", &user_name);
@@ -103,7 +138,7 @@ void ForceGameMenu(){
 
 // GAME MENU INFORMATION
 char *menu_opts[] = {"Start Game", "Options", "Credits", "Quit Game", NULL};
-void (*menu_funcs[])() = {&startGame, &openOptions, &showCredits, &forceExit};
+void (*menu_funcs[])() = {&selectSave, &openOptions, &showCredits, &forceExit};
 int currMenuOpt = 0;
 
 char *funText = "The cat's name is max!";
@@ -114,24 +149,47 @@ void drawGameMenu(){
     SetBkMode(hdcMem, TRANSPARENT);
     SelectObject(hdcMem, GameFont);
 
-    TEXTMETRIC tm;
-    GetTextMetrics(hdcMem, &tm);
-    int curr = 0;
-    int startPadding = 225;
-    int leftMargin = 20;
-    while (menu_opts[curr] != NULL){
-        int x = 0;
-        SetTextColor(hdcMem, regular_text_color);
-        if (currMenuOpt == curr){
-            x = 20;
-            SetTextColor(hdcMem, highlight_text_color);
+    if (selecting_save){
+        SetTextAlign(hdcMem, TA_CENTER | VTA_CENTER);
+        int mid_x = (int)((float)game_res[0]/2.0);
+        int v_padding = 5;
+        int h_padding = 80;
+        RECT background_box = {h_padding-25, v_padding, game_res[0] - h_padding + 25, game_res[1]-v_padding};
+        int box_height = (int)((float)(background_box.bottom - background_box.top)/3.0);
+        FillRect(hdcMem, &background_box, CreateNewColorBrush(RGB(150, 123, 75))->brush);
+        for (int i = 0; i < 3; i++){
+            RECT save_rect = {h_padding, box_height*i + v_padding + background_box.top, game_res[0]-h_padding, box_height*(i + 1)-(v_padding*2)};
+            HBRUSH brush = i == current_save ? CreateNewColorBrush(RGB(120, 100, 60))->brush : CreateNewColorBrush(RGB(173, 135, 87))->brush;
+            FillRect(hdcMem, &save_rect, brush);
+            POINT mid_pos = {(save_rect.right-save_rect.left)/2, (save_rect.bottom - save_rect.top)/2};
+            mid_pos.y += i*box_height;
+            if (i < save_count){
+                TextOut(hdcMem, mid_pos.x, mid_pos.y, save_names[i], strlen(save_names[i]));
+            }else{
+                char *create_text = "+ Create Save";
+                TextOut(hdcMem, mid_pos.x, mid_pos.y, create_text, strlen(create_text));
+            }
         }
-        TextOut(hdcMem, x + leftMargin, startPadding + curr*(tm.tmHeight+tm.tmAscent), menu_opts[curr], strlen(menu_opts[curr]));
-        curr++;
+    }else{
+        TEXTMETRIC tm;
+        GetTextMetrics(hdcMem, &tm);
+        int curr = 0;
+        int startPadding = 225;
+        int leftMargin = 20;
+        while (menu_opts[curr] != NULL){
+            int x = 0;
+            SetTextColor(hdcMem, regular_text_color);
+            if (currMenuOpt == curr){
+                x = 20;
+                SetTextColor(hdcMem, highlight_text_color);
+            }
+            TextOut(hdcMem, x + leftMargin, startPadding + curr*(tm.tmHeight+tm.tmAscent), menu_opts[curr], strlen(menu_opts[curr]));
+            curr++;
+        }
+        SetTextAlign(hdcMem, TA_BOTTOM | TA_RIGHT);
+        SetTextColor(hdcMem, ignore_text_color);
+        TextOut(hdcMem, game_res[0], game_res[1], gameVersion, strlen(gameVersion));
     }
-    SetTextAlign(hdcMem, TA_BOTTOM | TA_RIGHT);
-    SetTextColor(hdcMem, ignore_text_color);
-    TextOut(hdcMem, game_res[0], game_res[1], gameVersion, strlen(gameVersion));
 }
 
 void handleKEYDOWN(UINT key){
@@ -153,6 +211,29 @@ void handleKEYDOWN(UINT key){
         if (key == VK_SPACE){
             endWatermark();
             watermarkShow = FALSE;
+        }
+        return;
+    }
+    if (selecting_save){
+        if (key == VK_ESCAPE){
+            selecting_save = FALSE;
+        }
+        if (key == VK_UP){
+            if (current_save > 0) current_save--;
+        }
+        if (key == VK_DOWN){
+            if (current_save < save_count && current_save < 2) current_save++;
+        }
+        if (key == VK_RETURN){
+            if (current_save < save_count){
+                startGame();
+                read_save(save_files[current_save]);
+            }else{
+                char *save_name = create_brand_new_save();
+                startGame();
+                read_save(save_name);
+            }
+            selecting_save = FALSE;
         }
         return;
     }
