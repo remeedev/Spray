@@ -13,6 +13,7 @@
 #include "headers/particles.h"
 #include "headers/throwables.h"
 #include "headers/ui.h"
+#include "headers/savefile.h"
 
 // Admin Variables
 int showCollisions = FALSE;
@@ -33,6 +34,7 @@ HBITMAP hbmOld = NULL;
 
 // Store currently playing level
 char *current_level_name = NULL;
+char *prev_level_loaded = NULL;
 
 // Checks file extension
 int validExtension(char *file_name){
@@ -342,12 +344,26 @@ void loadLevel(char *level_name){
         }
         fclose(level_raw);
     }
-    current_level_name = level_name;
+    if (current_level_name) free(current_level_name);
+    current_level_name = (char *)malloc(strlen(level_name) + 1);
+    if (current_level_name == NULL){
+        printf("There was an error allocating memory for current level name!\n");
+        return;
+    }
+    strcpy(current_level_name, level_name);
+    if (prev_level_loaded) free(prev_level_loaded);
+    prev_level_loaded = (char *)malloc(strlen(level_name) + 1);
+    if (prev_level_loaded == NULL){
+        printf("There was an error allocating memory for current level name!\n");
+        return;
+    }
+    strcpy(prev_level_loaded, level_name);
 }
 
 Sprite *pause_menu_anim = NULL;
 
 void StartGraphics(HWND hWnd){
+    save_str("curr_level", &current_level_name);
     HDC hdc = GetDC(hWnd);
     hdcMem = CreateCompatibleDC(hdc);
     hbmMem = CreateCompatibleBitmap(hdc, game_res[0], game_res[1]);
@@ -613,6 +629,9 @@ int searchRedirect(int forceRedirect){
 }
 
 void Update(float dt){
+    if (strcmp(prev_level_loaded, current_level_name) != 0){
+        if (current_level_name) loadLevel(current_level_name);
+    }
     updateGrenades(dt, collisions);
     UpdatePosition(dt, collisions);
     updateParticles(dt);

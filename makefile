@@ -7,6 +7,8 @@ src_files := ./resources.o ./src/main.c ./src/drawing.c ./src/movement.c ./src/i
 
 FLAGS := -lgdi32 -lz -lmsimg32
 
+release_mode := -mwindows
+
 sprayz: icon
 	gcc -o $(file) $(src_files) $(FLAGS)
 
@@ -16,5 +18,5 @@ icon:
 run: sprayz
 	$(file)
 
-final:
-	gcc -o $(file) $(src_files) $(FLAGS) -mwindows
+release:
+	gcc -o $(file) $(src_files) $(FLAGS) $(release_mode)

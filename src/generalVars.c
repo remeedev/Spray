@@ -1,4 +1,5 @@
 #include <windows.h>
+#include <stdio.h>
 
 typedef struct textNode {
     char *value;
@@ -9,20 +10,24 @@ typedef struct textNode {
 // Recursive search inside tree
 textNode *find_text_node(textNode *structure, char *value){
     // Check self for value
-    if (structure == NULL) return NULL;
+    if (structure == NULL) {
+        return NULL;
+    }
     if (strcmp(structure->value, value) == 0) return structure;
 
     int found = FALSE;
-    textNode *tmp_resp;
-    tmp_resp = find_text_node(structure->child, value);
+    textNode *tmp_resp = NULL;
+    if (structure->child){
+        tmp_resp = find_text_node(structure->child, value);
+    }
     found = tmp_resp != NULL;
     if (found){
-        goto return_tmp;
+        return tmp_resp;
     }
-    tmp_resp = find_text_node(structure->next, value);
-    found = found || tmp_resp != NULL;
-
-    return_tmp:
+    if (structure->next){
+        tmp_resp = find_text_node(structure->next, value);
+    }
+    found = tmp_resp != NULL;
     return tmp_resp;
 }
 

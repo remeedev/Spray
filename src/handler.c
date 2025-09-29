@@ -55,6 +55,7 @@ void loadWatermark(){
 int in_level = FALSE;
 
 void startGameSystem(HWND hWnd, int screen_width, int screen_height){
+    init_save();
     StartGraphics(hWnd);
     Resize(hWnd, screen_width, screen_height);
     LoadBrushes();
@@ -79,7 +80,6 @@ void startGame(){
     loadLevel("./levels/level_0.txt");
     paused = FALSE;
     in_level = TRUE;
-    init_save();
     save_int("health", &GetPlayerPtr()->health);
     save_int("grenades", &grenade_count);
     save_str("name", &user_name);

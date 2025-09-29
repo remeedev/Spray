@@ -24,12 +24,14 @@ void hide_show_credits(){
     switch_credit_speed(FALSE);
 }
 
-
 void add_to_credits(char *role, char *name){
     textNode *parent_node = find_text_node(credit_saved, role);
-    if (find_text_node(parent_node, name) != NULL) return;
+    if (find_text_node(parent_node, name) != NULL) {
+        printf("Tried to add same name to role!\n");
+        return;
+    }
     textNode *name_node = find_text_node(credit_saved, name);
-    textNode *new_node = (textNode *) malloc(sizeof(new_node));
+    textNode *new_node = (textNode *) malloc(sizeof(textNode));
     if (new_node == NULL){
         printf("There was an issue creating the new node in credits!\n");
         return;
@@ -58,12 +60,11 @@ void add_to_credits(char *role, char *name){
         credited->next = new_node;
         return;
     }else{
-        textNode *fixed_parent = (textNode *) malloc(sizeof(new_node));
+        textNode *fixed_parent = (textNode *) malloc(sizeof(textNode));
         if (fixed_parent == NULL){
             printf("Error allocating space for local variable!\n");
             return;
         }
-
         fixed_parent->value = (char *)malloc(strlen(role) + 1);
         if (fixed_parent->value == NULL){
             printf("There was an error creating parent node value in credits!\n");
