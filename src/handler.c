@@ -144,6 +144,7 @@ int currMenuOpt = 0;
 char *funText = "The cat's name is max!";
 
 void drawGameMenu(){
+    if (showingCredits) return;
     PaintSprite(hdcMem, mainMenu);
     SetTextAlign(hdcMem, TA_TOP);
     SetBkMode(hdcMem, TRANSPARENT);
@@ -274,7 +275,10 @@ void handleCHAR(UINT key){
 
 void taskDraws(){
     // Needs update for special feature
-    draw_credits(hdcMem);
+    if (showingCredits){
+        draw_credits(hdcMem);
+        return;
+    }
     if (in_level){
         DrawGame();
         return;
