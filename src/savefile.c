@@ -8,6 +8,7 @@ DATATYPES (denoted by single char of ascii):
 2 - float
 3 - double
 4 - string
+5 - long
 */
 
 #include <math.h>
@@ -19,12 +20,15 @@ DATATYPES (denoted by single char of ascii):
 #include <stdlib.h>
 #include <stdio.h>
 
+size_t get_data_size(char datatype);
+
 char *save_folder = "./save";
 
 typedef struct save_data{
     char datatype;
     char *key;
     void *obj;
+    int freeReady;
 }save_data;
 
 typedef struct data_lookup{
@@ -61,6 +65,7 @@ void delete_save_lookup(data_lookup *save){
             continue;
         }
         if (save->searches[i]->key) free(save->searches[i]->key);
+        if (save->searches[i]->freeReady && save->searches[i]->obj) free(save->searches[i]->obj);
         free(save->searches[i]);
     }
     free(save);
@@ -124,7 +129,7 @@ int hash_key(char *key_name){
 void expand_lookup(data_lookup** l_u);
 
 // returns if saved value
-int add_to_lookup(data_lookup **l_up, char *name, void *assigned_value, char value_type){
+int add_to_lookup(data_lookup **l_up, char *name, void *assigned_value, char value_type, int freeReady){
     data_lookup *l_u = *l_up;
     int add_position = hash_key(name);
     if (l_u->searches[add_position]->key != NULL){
@@ -137,11 +142,16 @@ int add_to_lookup(data_lookup **l_up, char *name, void *assigned_value, char val
     strcpy(set_pos->key, name);
     set_pos->obj = assigned_value;
     set_pos->datatype = value_type;
+    set_pos->freeReady = freeReady;
     l_u->size++;
     if (l_u->size == l_u->capacity){
         expand_lookup(l_up);
     }
     return TRUE;
+}
+
+int add_to_save(char *name, void *assigned_value, char value_type, int freeReady){
+    return add_to_lookup(&curr_save, name, assigned_value, value_type, freeReady);
 }
 
 void remove_from_lookup(data_lookup *l_u, char *key){
@@ -154,12 +164,48 @@ void remove_from_lookup(data_lookup *l_u, char *key){
     }
 }
 
+void remove_from_save(char *name){
+    remove_from_lookup(curr_save, name);
+}
+
 save_data* get_from_lookup(data_lookup *l_u, char *key){
     int add_position = hash_key(key);
     if (l_u->searches[add_position]->key != NULL){
         return l_u->searches[add_position];
     }
     return NULL;
+}
+
+int check_pending_overwrite(char *key){
+    save_data *elem = get_from_lookup(curr_save, key);
+    if (elem == NULL) return FALSE;
+    return elem->freeReady;
+}
+
+void overwrite(char *key, void *value, int freeReady){
+    save_data *elem = get_from_lookup(curr_save, key);
+    if (elem == NULL) return;
+    if (elem->freeReady) free(elem->obj);
+    elem->obj = value;
+    elem->freeReady = freeReady;
+}
+
+void* get_from_save(char *key){
+    save_data* return_val = get_from_lookup(curr_save, key);
+    if (return_val) return return_val->obj;
+    return NULL;
+}
+
+void add_static_save(char *key, void *value, char datatype){
+    int size = get_data_size(datatype);
+    if (datatype == 4) size = strlen(*(char **)value) + 1;
+    void *value_copy = (void *)malloc(size);
+    memcpy(value_copy, value, size);
+    if (get_from_save(key) != NULL){
+        overwrite(key, value_copy, TRUE);
+    }else{
+        add_to_save(key, value_copy, datatype, TRUE);
+    }
 }
 
 void expand_lookup(data_lookup** l_up){
@@ -169,7 +215,7 @@ void expand_lookup(data_lookup** l_up){
     int i = 0;
     while (i < l_u->capacity){
         if (l_u->searches[i]->key != NULL){
-            add_to_lookup(&tmp, l_u->searches[i]->key, l_u->searches[i]->obj, l_u->searches[i]->datatype);
+            add_to_lookup(&tmp, l_u->searches[i]->key, l_u->searches[i]->obj, l_u->searches[i]->datatype, l_u->searches[i]->freeReady);
         }
         i++;
     }
@@ -179,27 +225,27 @@ void expand_lookup(data_lookup** l_up){
 
 int save_int(char *name, int *value){
     if (curr_save == NULL) curr_save = create_empty_save(7);
-    return add_to_lookup(&curr_save, name, value, (char) 1);
+    return add_to_lookup(&curr_save, name, value, (char) 1, FALSE);
 }
 
 int save_float(char *name, float *value){
     if (curr_save == NULL) curr_save = create_empty_save(7);
-    return add_to_lookup(&curr_save, name, value, (char) 2);
+    return add_to_lookup(&curr_save, name, value, (char) 2, FALSE);
 }
 
 int save_double(char *name, double *value){
     if (curr_save == NULL) curr_save = create_empty_save(7);
-    return add_to_lookup(&curr_save, name, value, (char) 3);
+    return add_to_lookup(&curr_save, name, value, (char) 3, FALSE);
 }
 
 int save_str(char *name, char **value){
     if (curr_save == NULL) curr_save = create_empty_save(7);
-    return add_to_lookup(&curr_save, name, value, (char) 4);
+    return add_to_lookup(&curr_save, name, value, (char) 4, FALSE);
 }
 
 int save_long(char *name, long *value){
     if (curr_save == NULL) curr_save = create_empty_save(7);
-    return add_to_lookup(&curr_save, name, value, (char) 5);
+    return add_to_lookup(&curr_save, name, value, (char) 5, FALSE);
 }
 
 size_t get_data_size(char a){
@@ -213,7 +259,7 @@ size_t get_data_size(char a){
         case 3:
             return sizeof(double);
         case 4:
-            return sizeof(char *);
+            return -1;
         case 5:
             return sizeof(long);
         default:
@@ -371,12 +417,21 @@ void write_save_custom(data_lookup *l_u, char *save_name){
     fclose(ptr);
 }
 
+char *previous_save = NULL;
+
 void write_save(){
-    char *save_name = "/test_save.dat";
-    write_save_custom(curr_save, save_name);
+    if (previous_save == NULL) return;
+    write_save_custom(curr_save, previous_save);
 }
 
 void read_save(char *save_name){
+    if (previous_save != NULL) free(previous_save);
+    previous_save = (char *)malloc(strlen(save_name) + 1);
+    if (previous_save == NULL){
+        printf("Couldn't allocate space for current load name!\n");
+        return;
+    }
+    strcpy(previous_save, save_name);
     char *file_name = (char *)malloc(strlen(save_folder) + strlen(save_name) + 1);
     if (file_name == NULL){
         printf("There was an error allocating space for save folder!\n");
@@ -399,14 +454,13 @@ void read_save(char *save_name){
 
         char datatype = fgetc(ptr);
         save_data *elem = get_from_lookup(curr_save, name);
-        if (elem == NULL){
-            printf("Didn't find corresponding variable to %s\n", name);
-            free(name);
-            fclose(ptr);
-            return;
-        }
         int value_size = 0;
         fread(&value_size, sizeof(int), 1, ptr);
+        if (elem == NULL){
+            void *elem_value = malloc(value_size);
+            add_static_save(name, elem_value, datatype);
+            elem = get_from_lookup(curr_save, name);
+        }
         if (datatype == 4) {
             char **to_write = (char **)elem->obj;
             *to_write = (char *)malloc(value_size + 1);
@@ -526,4 +580,13 @@ char* create_brand_new_save(){
     fclose(dst_file);
     fclose(src_file);
     return save_name;
+}
+
+void end_save(int final){
+    if (curr_save == NULL) return;
+    write_save();
+    if (final){
+        delete_save_lookup(curr_save);
+        curr_save = NULL;
+    }
 }

@@ -9,6 +9,7 @@
 #include "headers/generalvars.h"
 #include "headers/level_loader.h"
 #include "headers/the_chronic.h"
+#include "headers/characters.h"
 
 float NPC_speed = 750.0;
 
@@ -295,7 +296,7 @@ void addToLoadedSprites(NPC *sprite){
     }
 }
 
-void loadEnemyNPC(char *path, int x, int y, int cx, int cy, int upscale){
+void loadEnemyNPC(char *path, int x, int y, int cx, int cy, int upscale, char *name){
     char *still_left = addPath(path, "/still_left.png");
     FILE *file = fopen(still_left, "rb");
     if (file == NULL){
@@ -350,10 +351,14 @@ void loadEnemyNPC(char *path, int x, int y, int cx, int cy, int upscale){
     newNPC->hitTime = 1.5f;
     newNPC->hitTimeMax = 1.5f;
     newNPC->didDamage = FALSE;
+    newNPC->npcSprite->name = name;
+    if (name){
+        loadSpriteCharacter(newNPC->npcSprite);
+    }
     addToLoadedSprites(newNPC);
 }
 
-void loadFriendlyNPC(char *path, int x, int y, int cx, int cy, int upscale){
+void loadFriendlyNPC(char *path, int x, int y, int cx, int cy, int upscale, char *name){
     char *still_left = addPath(path, "/still_left.png");
     FILE *file = fopen(still_left, "rb");
     if (file == NULL){
@@ -390,6 +395,10 @@ void loadFriendlyNPC(char *path, int x, int y, int cx, int cy, int upscale){
     newNPC->hitTime = 1.5f;
     newNPC->hitTimeMax = 1.5f;
     newNPC->didDamage = FALSE;
+    newNPC->npcSprite->name = name;
+    if (name){
+        loadSpriteCharacter(newNPC->npcSprite);
+    }
     addToLoadedSprites(newNPC);
 }
 
@@ -419,6 +428,7 @@ NPCGroup *killNPC(NPCGroup *prev, NPCGroup *curr){
     if (curr == NULL){
         curr = prev->next;
     }
+    if (curr->npc->npcSprite->name)lockSpriteDeath(curr->npc->npcSprite);
     // Create the dead body
     Sprite *dead_npc = (Sprite *)malloc(sizeof(Sprite));
     POINT pos = curr->npc->npcSprite->pos;
@@ -673,8 +683,14 @@ int changeHarmLevel(int indexFrom1, int value){
 void updateNPCs(SpriteGroup *collisions, float dt){
     dt = (dt > 0.05f) ? 0.05f : dt;
     NPCGroup *curr = loaded_NPCs;
+    NPCGroup *prev = NULL;
     int playerY = GetPlayerPos().y;
     while (curr != NULL){
+        if (curr->npc->npcSprite->health <= 0){
+            curr = killNPC(prev, curr);
+            continue;
+        }
+        prev = curr;
         if (curr->npc->hitTime < curr->npc->hitTimeMax){
             curr->npc->hitTime += dt;
         }

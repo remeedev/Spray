@@ -265,7 +265,11 @@ void ProcessData(char *name, int argc, char **argv){
             cy = toInt(argv[3]);
             char *path = argv[4];
             int upscale = toInt(argv[5]);
-            loadEnemyNPC(path, x, y, cx, cy, upscale);
+            char *name = NULL;
+            if (argc >= 7) {
+                name = argv[6];
+            }
+            loadEnemyNPC(path, x, y, cx, cy, upscale, name);
         }
     }
     if (strcmp(name, "FRN") == 0){
@@ -277,7 +281,11 @@ void ProcessData(char *name, int argc, char **argv){
             cy = toInt(argv[3]);
             char *path = argv[4];
             int upscale = toInt(argv[5]);
-            loadFriendlyNPC(path, x, y, cx, cy, upscale);
+            char *name = NULL;
+            if (argc >= 7) {
+                name = argv[6];
+            }
+            loadFriendlyNPC(path, x, y, cx, cy, upscale, name);
         }
     }
     if (strcmp(name, "CNV") == 0){
@@ -400,6 +408,7 @@ void resume_game(){
 }
 
 void forceExit(){
+    end_save(TRUE);
     PostMessage(mainWindow, WM_QUIT, 0, 0);
 }
 

@@ -2,8 +2,8 @@
 #include <wingdi.h>
 #include "animations.h"
 
-#ifndef moving
-#define moving
+#ifndef drawing
+#define drawing
 
 // Basic structures and typedefs
 
@@ -21,6 +21,7 @@ typedef struct Sprite {
     SIZE size;
     BrushPalette* brush;
     int health, damage, maxHealth;
+    char *name;
 } Sprite;
 
 typedef struct SpriteGroup {

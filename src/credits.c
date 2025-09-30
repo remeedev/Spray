@@ -109,7 +109,8 @@ void init_credits(){
     credit_pos = game_res[1];
     load_game_logo();
     add_to_credits("Programmer", "Remeedev");
-    add_to_credits("Artist", "Remeedev");
+    add_to_credits("Visual Artist", "Remeedev");
+    add_to_credits("Music Producer", "Pistola de Guaro");
 }
 
 void build_credits_raw(textNode *structure){

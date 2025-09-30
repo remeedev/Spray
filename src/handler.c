@@ -134,6 +134,7 @@ void ForceGameMenu(){
     EndLastLevel();
     in_level = FALSE;
     startMainMenu();
+    end_save(FALSE);
 }
 
 // GAME MENU INFORMATION

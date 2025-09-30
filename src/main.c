@@ -1,4 +1,3 @@
-#include <windows.h>
 #include <stdio.h>
 #include <sys/time.h>
 
@@ -9,6 +8,7 @@
 #include "headers/generalvars.h"
 #include "headers/handler.h"
 #include "headers/resource.h"
+#include "headers/savefile.h"
 
 void get_mouse_pos(HWND hWnd, LPPOINT out){
     // Adding default values
@@ -61,6 +61,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) {
             break;
         case WM_DESTROY:
             running = FALSE;
+            end_save(TRUE);
             PostQuitMessage(0);
             return 0;
         case WM_PAINT: ;

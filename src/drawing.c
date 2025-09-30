@@ -29,6 +29,7 @@ typedef struct Sprite {
     SIZE size;
     BrushPalette* brush;
     int health, damage, maxHealth;
+    char *name;
 } Sprite;
 
 typedef struct SpriteGroup {
@@ -153,6 +154,7 @@ void deleteBrushes(){
 // ======== Sprites ===================
 void EraseSprite(Sprite *sprite){ // Deletes sprites
     free(sprite);
+    if (sprite->name) free(sprite->name);
 }
 
 void CreateSprite(Sprite* sprite, int x, int y, int cx, int cy, COLORREF color){ // Creates simple color sprite
@@ -169,6 +171,7 @@ void CreateSprite(Sprite* sprite, int x, int y, int cx, int cy, COLORREF color){
     sprite->health = 5;
     sprite->maxHealth = 5;
     sprite->damage = 1;
+    sprite->name = NULL;
 }
 
 void CreateImgSprite(Sprite* sprite, int x, int y, int cx, int cy, char *name, int upscale){ // Create strictly single image sprite
@@ -184,6 +187,7 @@ void CreateImgSprite(Sprite* sprite, int x, int y, int cx, int cy, char *name, i
     sprite->health = 5;
     sprite->maxHealth = 5;
     sprite->damage = 1;
+    sprite->name = NULL;
 }
 
 void CreateAnimatedSprite(Sprite* sprite, int x, int y, int cx, int cy, char *name, char *animation_name, int fps, int upscale){ // Creates animating sprite from spritesheet
@@ -199,6 +203,7 @@ void CreateAnimatedSprite(Sprite* sprite, int x, int y, int cx, int cy, char *na
     sprite->health = 5;
     sprite->maxHealth = 5;
     sprite->damage = 1;
+    sprite->name = NULL;
 }
 
 void UpdateAnimatedSprites(SpriteGroup *group, float dt){

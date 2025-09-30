@@ -3,6 +3,7 @@
 #include "headers/movement.h"
 #include "headers/level_loader.h"
 #include "headers/npc.h"
+#include "headers/generalvars.h"
 
 #include <windows.h>
 #include <stdio.h>

@@ -1,5 +1,5 @@
 BGI="./assets/map/5.png",8
 REF=0,392,10,200,"./levels/level_4.txt"
 REF=1270,392,10,200,"./levels/level_6.txt"
-FRN=0,500,96,128,"./assets/cop",8
+ENE=0,500,96,128,"./assets/cop",8,"Sam"
 CNV="./dialogues/text.txt"
