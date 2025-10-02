@@ -9,22 +9,7 @@ Handles Spritesheet animation and sprite animations
 #include <string.h>
 
 #include "headers/images.h"
-
-// Basic Animation Structures
-typedef struct Animation {
-    HBITMAP base_image;
-    int curr_image, image_count, fps, upscale;
-    SIZE frame_dimensions;
-    float frame_counter;
-    char *animation_name;
-}Animation;
-
-typedef struct AnimationGroup {
-    Animation *animation;
-    struct AnimationGroup *playing;
-    struct AnimationGroup *next;
-}AnimationGroup;
-
+#include "headers/generalvars.h"
 
 // ======= INIT FUNCTIONS =======
 Animation *LoadSpriteSheet(char *image_name, char *animation_name, size_t FrameWidth, size_t FrameHeight, int fps, float upscale){

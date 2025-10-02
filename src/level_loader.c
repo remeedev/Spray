@@ -217,7 +217,7 @@ void ProcessData(char *name, int argc, char **argv){
                 printf("Error allocating memory!\n");
                 return;
             }
-            CreateAnimatedSprite(newSprite, x, y, cx, cy, file_name, "basic", 12, scaling);
+            CreateAnimatedSprite(newSprite, x, y, cx, cy, file_name, "basic", 12, scaling, NULL);
             AddSpriteToGroup(collisions, newSprite);
         }
     }
@@ -230,7 +230,7 @@ void ProcessData(char *name, int argc, char **argv){
                 bg = NULL;
             }
             bg = (Sprite *)malloc(sizeof(Sprite));
-            CreateAnimatedSprite(bg, 0, 0, game_res[0], game_res[1], file_name, "basic", 12, upscale);
+            CreateAnimatedSprite(bg, 0, 0, game_res[0], game_res[1], file_name, "basic", 12, upscale, NULL);
         }
     }
     if (strcmp(name, "REF") == 0){
@@ -387,7 +387,7 @@ void StartGraphics(HWND hWnd){
         return;
     }
     int upscale = game_res[0]/160;
-    CreateAnimatedSprite(pause_menu_anim, 0, 0, game_res[0], game_res[1], "./assets/ui/pause_menu.png", "pm", 6, upscale);
+    CreateAnimatedSprite(pause_menu_anim, 0, 0, game_res[0], game_res[1], "./assets/ui/pause_menu.png", "pm", 6, upscale, NULL);
 
     collisionColor = RGB(255, 0, 0);
     characterColor = RGB(0, 255, 0);

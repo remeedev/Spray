@@ -1,4 +1,4 @@
-#include <windows.h>
+#include "generalvars.h"
 
 #ifndef ui
 #define ui

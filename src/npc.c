@@ -311,7 +311,7 @@ void loadEnemyNPC(char *path, int x, int y, int cx, int cy, int upscale, char *n
         return;
     }
 
-    CreateAnimatedSprite(sprite, x, y, cx, cy, still_left, "still_left", 10, upscale);
+    CreateAnimatedSprite(sprite, x, y, cx, cy, still_left, "still_left", 10, upscale, name);
     free(still_left);
     char *still_right = addPath(path, "/still_right.png");
     AddToAnimationGroup(sprite->brush->anim_group, still_right, "still_right", cx, cy, 10, upscale);
@@ -351,10 +351,6 @@ void loadEnemyNPC(char *path, int x, int y, int cx, int cy, int upscale, char *n
     newNPC->hitTime = 1.5f;
     newNPC->hitTimeMax = 1.5f;
     newNPC->didDamage = FALSE;
-    newNPC->npcSprite->name = name;
-    if (name){
-        loadSpriteCharacter(newNPC->npcSprite);
-    }
     addToLoadedSprites(newNPC);
 }
 
@@ -369,7 +365,7 @@ void loadFriendlyNPC(char *path, int x, int y, int cx, int cy, int upscale, char
     Sprite *sprite = (Sprite *)malloc(sizeof(Sprite));
 
     // Friendly has different animations
-    CreateAnimatedSprite(sprite, x, y, cx, cy, still_left, "still_left", 10, upscale);
+    CreateAnimatedSprite(sprite, x, y, cx, cy, still_left, "still_left", 10, upscale, name);
     free(still_left);
     char *still_right = addPath(path, "/still_right.png");
     AddToAnimationGroup(sprite->brush->anim_group, still_right, "still_right", cx, cy, 10, upscale);
@@ -395,10 +391,6 @@ void loadFriendlyNPC(char *path, int x, int y, int cx, int cy, int upscale, char
     newNPC->hitTime = 1.5f;
     newNPC->hitTimeMax = 1.5f;
     newNPC->didDamage = FALSE;
-    newNPC->npcSprite->name = name;
-    if (name){
-        loadSpriteCharacter(newNPC->npcSprite);
-    }
     addToLoadedSprites(newNPC);
 }
 
@@ -433,7 +425,7 @@ NPCGroup *killNPC(NPCGroup *prev, NPCGroup *curr){
     Sprite *dead_npc = (Sprite *)malloc(sizeof(Sprite));
     POINT pos = curr->npc->npcSprite->pos;
     SIZE size = curr->npc->npcSprite->size;
-    CreateAnimatedSprite(dead_npc, pos.x, pos.y, size.cx, size.cy, "./assets/dead_spray.png", "basic", 24, 8);
+    CreateAnimatedSprite(dead_npc, pos.x, pos.y, size.cx, size.cy, "./assets/dead_spray.png", "basic", 24, 8, NULL);
     SpriteGroup *npcWrapper = (SpriteGroup *)malloc(sizeof(SpriteGroup));
     npcWrapper->sprite = dead_npc;
     npcWrapper->next = NULL;

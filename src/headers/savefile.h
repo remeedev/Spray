@@ -1,3 +1,5 @@
+#include "generalvars.h"
+
 #ifndef savefile
 #define savefile
 

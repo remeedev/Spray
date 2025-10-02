@@ -1,33 +1,8 @@
-#include <windows.h>
 #include <wingdi.h>
-#include "animations.h"
+#include "generalvars.h"
 
 #ifndef drawing
 #define drawing
-
-// Basic structures and typedefs
-
-typedef struct BrushPalette {
-    unsigned int type; // 0 Color 1 Animation
-    HBRUSH brush;
-    COLORREF color;
-    char *name;
-    AnimationGroup *anim_group;
-    struct BrushPalette *next;
-} BrushPalette;
-
-typedef struct Sprite {
-    POINT pos;
-    SIZE size;
-    BrushPalette* brush;
-    int health, damage, maxHealth;
-    char *name;
-} Sprite;
-
-typedef struct SpriteGroup {
-    Sprite* sprite;
-    struct SpriteGroup* next;
-} SpriteGroup;
 
 // DIRECT BRUSH FUNCTIONS HIDDEN
 void LoadBrushes();
@@ -39,7 +14,7 @@ BrushPalette *CreateNewColorBrush(COLORREF color); // In case draw comes in from
 // SPRITE CREATION
 void CreateSprite(Sprite* sprite, int x, int y, int cx, int cy, COLORREF color);
 void CreateImgSprite(Sprite* sprite, int x, int y, int cx, int cy, char *name, int upscale);
-void CreateAnimatedSprite(Sprite* sprite, int x, int y, int cx, int cy, char *name, char *animation_name, int fps, int upscale);
+void CreateAnimatedSprite(Sprite* sprite, int x, int y, int cx, int cy, char *name, char *animation_name, int fps, int upscale, char *character_name);
 
 void EraseSprite(Sprite *sprite);
 

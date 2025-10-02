@@ -1,4 +1,3 @@
-#include <windows.h>
 #include "drawing.h"
 #include "generalvars.h"
 

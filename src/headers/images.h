@@ -1,4 +1,4 @@
-#include <windows.h>
+#include "generalvars.h"
 
 #ifndef images
 #define images

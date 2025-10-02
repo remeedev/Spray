@@ -1,22 +1,7 @@
-#include <windows.h>
+#include "generalvars.h"
 
 #ifndef animations
 #define animations
-
-// Structures
-typedef struct Animation {
-    HBITMAP base_image;
-    int curr_image, image_count, fps;
-    SIZE frame_dimensions;
-    float frame_counter;
-    char *animation_name;
-}Animation;
-
-typedef struct AnimationGroup {
-    Animation *animation;
-    struct AnimationGroup *playing;
-    struct AnimationGroup *next;
-}AnimationGroup;
 
 // ======= INIT FUNCTIONS =======
 Animation *LoadSpriteSheet(char *image_name, char *animation_name, size_t FrameWidth, size_t FrameHeight, int fps, float upscale);

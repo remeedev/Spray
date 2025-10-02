@@ -11,6 +11,7 @@
 #include "headers/savefile.h"
 #include "headers/throwables.h"
 #include "headers/the_chronic.h"
+#include "headers/animations.h"
 
 // WATERMARK NECESSARY DATA
 int watermarkShow = TRUE;
@@ -33,7 +34,7 @@ void startMainMenu(){
     endMainMenu();
     mainMenu = (Sprite *)malloc(sizeof(Sprite));
     int upscale = game_res[0]/160.0;
-    CreateAnimatedSprite(mainMenu, 0, 0, game_res[0], game_res[1], "./assets/ui/main_menu.png", "mm", 12, upscale);
+    CreateAnimatedSprite(mainMenu, 0, 0, game_res[0], game_res[1], "./assets/ui/main_menu.png", "mm", 12, upscale, NULL);
 }
 
 void endWatermark(){
@@ -50,7 +51,7 @@ void loadWatermark(){
     int x = (game_res[0] - cx) / 2;
     int y = (game_res[1] - cy) / 2;
     int upscale = cx/96;
-    CreateAnimatedSprite(watermark, x, y, cx, cy, "./assets/watermark_anim.png", "wm", 12, upscale);
+    CreateAnimatedSprite(watermark, x, y, cx, cy, "./assets/watermark_anim.png", "wm", 12, upscale, NULL);
 }
 
 int in_level = FALSE;

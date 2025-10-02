@@ -12,30 +12,8 @@ Has the handle to the main player
 
 #include "headers/images.h"
 #include "headers/animations.h"
-
-// Basic structures and typedefs
-
-typedef struct BrushPalette {
-    unsigned int type; // 0 Color 1 Animation
-    HBRUSH brush;
-    COLORREF color;
-    char *name;
-    AnimationGroup *anim_group;
-    struct BrushPalette *next;
-} BrushPalette;
-
-typedef struct Sprite {
-    POINT pos;
-    SIZE size;
-    BrushPalette* brush;
-    int health, damage, maxHealth;
-    char *name;
-} Sprite;
-
-typedef struct SpriteGroup {
-    Sprite* sprite;
-    struct SpriteGroup* next;
-} SpriteGroup;
+#include "headers/generalvars.h"
+#include "headers/characters.h"
 
 // ======== BRUSH MEMORY SECTION =============
 BrushPalette *brushes = NULL;
@@ -190,7 +168,8 @@ void CreateImgSprite(Sprite* sprite, int x, int y, int cx, int cy, char *name, i
     sprite->name = NULL;
 }
 
-void CreateAnimatedSprite(Sprite* sprite, int x, int y, int cx, int cy, char *name, char *animation_name, int fps, int upscale){ // Creates animating sprite from spritesheet
+// Only function that allows for names
+void CreateAnimatedSprite(Sprite* sprite, int x, int y, int cx, int cy, char *name, char *animation_name, int fps, int upscale, char* character_name){ // Creates animating sprite from spritesheet
     sprite->brush = LoadAnimationAsBrush(name, animation_name, (size_t)cx, (size_t)cy, fps, upscale);
     POINT pos;
     pos.x = x;
@@ -203,7 +182,13 @@ void CreateAnimatedSprite(Sprite* sprite, int x, int y, int cx, int cy, char *na
     sprite->health = 5;
     sprite->maxHealth = 5;
     sprite->damage = 1;
-    sprite->name = NULL;
+    if (character_name){
+        sprite->name = (char *)malloc(strlen(character_name) + 1);
+        strcpy(sprite->name, character_name);
+        loadSpriteCharacter(sprite);
+    }else{
+        sprite->name = NULL;
+    }
 }
 
 void UpdateAnimatedSprites(SpriteGroup *group, float dt){
@@ -330,7 +315,7 @@ Sprite *player = NULL;
 void InitPlayer(){
     if (player == NULL){
         player = (Sprite *)malloc(sizeof(Sprite));
-        CreateAnimatedSprite(player, 0, 0, 48*2, 64*2, "./assets/player/walking_right.png", "walking_right", 10, 8);
+        CreateAnimatedSprite(player, 0, 0, 48*2, 64*2, "./assets/player/walking_right.png", "walking_right", 10, 8, NULL);
         AddToAnimationGroup(player->brush->anim_group, "./assets/player/walking_left.png", "walking_left", 48*2, 64*2, 10, 8);
         AddToAnimationGroup(player->brush->anim_group, "./assets/player/attacking_right.png", "attacking_right", 48*2, 64*2, 10, 8);
         AddToAnimationGroup(player->brush->anim_group, "./assets/player/attacking_left.png", "attacking_left", 48*2, 64*2, 10, 8);

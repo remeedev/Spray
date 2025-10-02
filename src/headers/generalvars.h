@@ -1,8 +1,47 @@
 #include <windows.h>
-#include "drawing.h"
 
 #ifndef generalvars
 #define generalvars
+
+// Structures
+typedef struct Animation {
+    HBITMAP base_image;
+    int curr_image, image_count, fps, upscale;
+    SIZE frame_dimensions;
+    float frame_counter;
+    char *animation_name;
+}Animation;
+
+typedef struct AnimationGroup {
+    Animation *animation;
+    struct AnimationGroup *playing;
+    struct AnimationGroup *next;
+}AnimationGroup;
+
+// Basic structures and typedefs
+
+typedef struct BrushPalette {
+    unsigned int type; // 0 Color 1 Animation
+    HBRUSH brush;
+    COLORREF color;
+    char *name;
+    AnimationGroup *anim_group;
+    struct BrushPalette *next;
+} BrushPalette;
+
+typedef struct Sprite {
+    POINT pos;
+    SIZE size;
+    BrushPalette* brush;
+    int health, damage, maxHealth;
+    char *name;
+} Sprite;
+
+typedef struct SpriteGroup {
+    Sprite* sprite;
+    struct SpriteGroup* next;
+} SpriteGroup;
+
 
 typedef struct conversation {
     wchar_t *line;

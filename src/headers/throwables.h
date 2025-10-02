@@ -1,6 +1,5 @@
 #include "drawing.h"
-
-#include <windows.h>
+#include "generalvars.h"
 
 #ifndef throwables
 #define throwables
