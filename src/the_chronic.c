@@ -1,4 +1,6 @@
 #include "headers/generalvars.h"
+#include "headers/savefile.h"
+#include "headers/characters.h"
 
 #include <windows.h>
 #include <stdio.h>
@@ -8,6 +10,26 @@ int weed_bags = 5;
 
 wchar_t *weed_convos = L"Do you have any weed, I could buy from you?";
 char *options[] = {"Yes, I have some on me!", "I'm currently not selling.", NULL};
+
+int amure(NPC *npc){
+    return npc->weed_amount < 10.0 && npc->smoke_inhaled == 0.0;
+}
+
+void lock_weed_smoker(NPC *npc){
+    lockCharacterAttr(npc->npcSprite->name, "weed_smoke", 1, &npc->weed_smoker);
+    lockCharacterAttr(npc->npcSprite->name, "weed_count", 2, &npc->weed_amount);
+    lockCharacterAttr(npc->npcSprite->name, "smoke_inhaled", 2, &npc->smoke_inhaled);
+}
+
+int convert_to_weed_smoker(NPC *npc){
+    npc->weed_smoker = TRUE;
+    if (npc->npcSprite->name){
+        loadCharacterAttr(npc->npcSprite->name, "weed_smoke", 1, &npc->weed_smoker);
+        loadCharacterAttr(npc->npcSprite->name, "weed_count", 2, &npc->weed_amount);
+        loadCharacterAttr(npc->npcSprite->name, "smoke_inhaled", 2, &npc->smoke_inhaled);
+    }
+    return amure(npc);
+}
 
 size_t get_strlist_length(char **in){
     size_t len = 0;
@@ -54,9 +76,10 @@ void start_weed_convos(){
     no_weed = create_text(options[1]);
 }
 
-conversation * process_weed_sale(conversation *curr_conv){
+conversation * process_weed_sale(conversation *curr_conv, NPC *npc){
     if (curr_conv->option_selected == 0) {
         weed_bags--;
+        npc->weed_amount += 10.0;
         return have_weed;
     }
     if (curr_conv->option_selected == 1) {

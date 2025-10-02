@@ -10,25 +10,11 @@
 #include "headers/level_loader.h"
 #include "headers/the_chronic.h"
 #include "headers/characters.h"
+#include "headers/particles.h"
 
 float NPC_speed = 750.0;
 
 float conv_top = 3.0/5.0;
-
-typedef struct NPC {
-    Sprite* npcSprite;
-    int friendly, targetX, talking, talked, didDamage;
-    float forces[2];
-    float still, stillTimer;
-    float hitTime, hitTimeMax;
-    conversation *conv;
-} NPC;
-
-// NPC Storage
-typedef struct NPCGroup{
-    NPC *npc;
-    struct NPCGroup *next;
-} NPCGroup;
 
 NPCGroup *loaded_NPCs = NULL;
 
@@ -48,11 +34,14 @@ int min_conv_dist = 200;
 int conv_padd = 50;
 
 typedef void (*conversation_creator)(conversation *, SpriteGroup *);
+typedef int (*conv_implications)(NPC *);
 
 char *option_assignment[] = {"weed_sale", NULL};
 conversation_creator option_funcs[] = {&create_weed_sale};
+conv_implications conversions[] = {&convert_to_weed_smoker, NULL};
+NPC *talking_to = NULL;
 
-void loadConvoToLastSprite(char *file_name){
+void loadConvoToNPC(char *file_name, NPC *out_npc){
     if (chat_bubble == NULL){
         chat_bubble = (Sprite *)malloc(sizeof(Sprite));
         CreateImgSprite(chat_bubble, 0, 0, 88, 56, "./assets/ui/chat_bubble.png", 8);
@@ -115,7 +104,9 @@ void loadConvoToLastSprite(char *file_name){
                 while (option_assignment[option_loading] != NULL){
                     if (strcmp(option_assignment[option_loading], saved)==0){
                         conversation_creator creator_func = option_funcs[option_loading];
-                        creator_func(out, characters);
+                        if (conversions[option_loading]){
+                            if (conversions[option_loading](out_npc)) creator_func(out, characters);
+                        }
                     }
                     option_loading++;
                 }
@@ -170,14 +161,28 @@ void loadConvoToLastSprite(char *file_name){
         groupDel=groupDel->next;
         free(ll);
     }
-    NPCGroup *curr_npc = loaded_NPCs;
-    while (curr_npc->next != NULL) curr_npc = curr_npc->next;
-    curr_npc->npc->conv = out;
-    curr_npc->npc->talked = FALSE;
+    out_npc->conv = out;
+    out_npc->talked = FALSE;
     fclose(file);
 }
 
+void loadConvoToLastSprite(char *file_name){
+    NPCGroup *curr_npc = loaded_NPCs;
+    while (curr_npc->next != NULL) curr_npc = curr_npc->next;
+    loadConvoToNPC(file_name, curr_npc->npc);
+}
+
 int distToPlayer(Sprite *sprite);
+
+void unloadConversation(conversation *conv){
+    conversation *curr = conv;
+    while (curr) {
+        free(curr->line);
+        conversation *prev = curr;
+        curr = curr->next;
+        free(prev);
+    }
+}
 
 void conversationsNext(){
     if (conv_playing != NULL){
@@ -194,6 +199,9 @@ void conversationsNext(){
         while (curr->npc->talking == FALSE) curr = curr->next;
         curr->npc->talking = FALSE;
         curr->npc->talked = TRUE;
+        unloadConversation(curr->npc->conv);
+        curr->npc->conv = NULL;
+        talking_to = NULL;
         talking = FALSE;
         return;
     }else{
@@ -203,6 +211,7 @@ void conversationsNext(){
                 conv_playing = curr->npc->conv;
                 curr->npc->talking = TRUE;
                 talking = TRUE;
+                talking_to = curr->npc;
             }
             curr = curr->next;
         }
@@ -216,7 +225,7 @@ void handle_key_down_conv(UINT key){
     }
     if (conv_playing->options){
         if (key == VK_SPACE || key == VK_RETURN){
-            conv_playing = conv_playing->option_handler(conv_playing);
+            conv_playing = conv_playing->option_handler(conv_playing, talking_to);
         }
         if (key == VK_UP){
             if (conv_playing->option_selected > 0){
@@ -242,15 +251,6 @@ int skip_conversation(){
     return steps;
 }
 
-void unloadConversation(conversation *conv){
-    conversation *curr = conv;
-    while (curr) {
-        free(curr->line);
-        conversation *prev = curr;
-        curr = curr->next;
-        free(prev);
-    }
-}
 
 void clearSprites(){
     if (chat_bubble) EraseSprite(chat_bubble);
@@ -259,6 +259,7 @@ void clearSprites(){
     NPCGroup *curr = loaded_NPCs;
     while (curr != NULL){
         NPCGroup *prev = curr;
+        if (curr->npc->weed_smoker) lock_weed_smoker(curr->npc);
         curr = curr->next;
         EraseSprite(prev->npc->npcSprite);
         if (prev->npc->conv != NULL) unloadConversation(prev->npc->conv);
@@ -351,6 +352,21 @@ void loadEnemyNPC(char *path, int x, int y, int cx, int cy, int upscale, char *n
     newNPC->hitTime = 1.5f;
     newNPC->hitTimeMax = 1.5f;
     newNPC->didDamage = FALSE;
+    newNPC->weed_smoker = FALSE;
+    newNPC->weed_amount = 0.0f;
+    newNPC->smoke_inhaled = 0.0;
+    newNPC->smoking = FALSE;
+    if (name){
+        convert_to_weed_smoker(newNPC);
+        if (newNPC->weed_smoker){
+            char *smoking_right = addPath(path, "/smoking_right.png");
+            AddToAnimationGroup(sprite->brush->anim_group, smoking_right, "smoking_right", cx, cy, 10, upscale);
+            free(smoking_right);
+            char *smoking_left = addPath(path, "/smoking_left.png");
+            AddToAnimationGroup(sprite->brush->anim_group, smoking_left, "smoking_left", cx, cy, 10, upscale);
+            free(smoking_left);
+        }
+    }
     addToLoadedSprites(newNPC);
 }
 
@@ -391,6 +407,21 @@ void loadFriendlyNPC(char *path, int x, int y, int cx, int cy, int upscale, char
     newNPC->hitTime = 1.5f;
     newNPC->hitTimeMax = 1.5f;
     newNPC->didDamage = FALSE;
+    newNPC->weed_smoker = FALSE;
+    newNPC->weed_amount = 0.0f;
+    newNPC->smoke_inhaled = 0.0;
+    newNPC->smoking = FALSE;
+    if (name){
+        convert_to_weed_smoker(newNPC);
+        if (newNPC->weed_smoker){
+            char *smoking_right = addPath(path, "/smoking_right.png");
+            AddToAnimationGroup(sprite->brush->anim_group, smoking_right, "smoking_right", cx, cy, 10, upscale);
+            free(smoking_right);
+            char *smoking_left = addPath(path, "/smoking_left.png");
+            AddToAnimationGroup(sprite->brush->anim_group, smoking_left, "smoking_left", cx, cy, 10, upscale);
+            free(smoking_left);
+        }
+    }
     addToLoadedSprites(newNPC);
 }
 
@@ -410,6 +441,9 @@ void drawTextHUD(HDC hdc, int x, int y, char **texts){
         currY -= tm.tmHeight;
         int drawnY = currY;
         currY += tm.tmAscent - tm.tmHeight;
+        int width = strlen(texts[pos])*tm.tmAveCharWidth;
+        RECT back_bar = {currX - (int)((double)width/2.0), currY - tm.tmAscent, currX + (int)((double)width/2.0), currY + tm.tmHeight - tm.tmAscent};
+        FillRect(hdc, &back_bar, CreateNewColorBrush(RGB(0, 0, 0))->brush);
         TextOut(hdc, currX, drawnY, texts[pos], strlen(texts[pos]));
         pos++;
     }
@@ -420,14 +454,18 @@ NPCGroup *killNPC(NPCGroup *prev, NPCGroup *curr){
     if (curr == NULL){
         curr = prev->next;
     }
-    if (curr->npc->npcSprite->name)lockSpriteDeath(curr->npc->npcSprite);
     // Create the dead body
     Sprite *dead_npc = (Sprite *)malloc(sizeof(Sprite));
+    if (curr->npc->weed_smoker) lock_weed_smoker(curr->npc);
     POINT pos = curr->npc->npcSprite->pos;
     SIZE size = curr->npc->npcSprite->size;
     CreateAnimatedSprite(dead_npc, pos.x, pos.y, size.cx, size.cy, "./assets/dead_spray.png", "basic", 24, 8, NULL);
     SpriteGroup *npcWrapper = (SpriteGroup *)malloc(sizeof(SpriteGroup));
     npcWrapper->sprite = dead_npc;
+    if (curr->npc->npcSprite->alr_dead){
+        npcWrapper->sprite->brush->anim_group->animation->curr_image = npcWrapper->sprite->brush->anim_group->animation->image_count - 1;
+    }
+    curr->npc->npcSprite->alr_dead = TRUE;
     npcWrapper->next = NULL;
     if (dead_npcs == NULL){
         dead_npcs = npcWrapper;
@@ -587,7 +625,7 @@ void drawAllNPCs(HDC hdc){
             sprintf(targetTxt, "Target: %d", curr->npc->targetX);
 
             // GET TALK STATE
-            char *talk_state = conversative ? "Ready to talk" : "Conversation available";
+            char *talk_state = conversative ? "Ready to talk" : curr->npc->conv ? "Conversation available" : "No conversation available";
 
             char *lvl = curr->npc->friendly ? "Friendly" : curr->npc->talked ? "Aggressive" : "Aggressive (Passive State)";
             char idTxt[100];
@@ -597,7 +635,12 @@ void drawAllNPCs(HDC hdc){
             char healthTxt[100];
             sprintf(healthTxt, "%d/%d", curr->npc->npcSprite->health, curr->npc->npcSprite->maxHealth);
 
-            char *displayed_info[] = {posTxt, forcesTxt, timerTxt, targetTxt, talk_state, lvl, healthTxt, idTxt, NULL};
+            char weed_info[100];
+            sprintf(weed_info, "%s [%.2f | %.2f]", curr->npc->smoking ? "Smoking" : curr->npc->weed_smoker ? "Smoker" : "Non-smoker", curr->npc->weed_amount, curr->npc->smoke_inhaled);
+
+            char *amurado = amure(curr->npc) ? "Looking to Buy" : "Has enough weed";
+
+            char *displayed_info[] = {amurado, weed_info, posTxt, forcesTxt, timerTxt, targetTxt, talk_state, lvl, healthTxt, idTxt, NULL};
             drawTextHUD(hdc, midX, currY, displayed_info);
         }
         DrawAnimatedSprite(hdc, curr->npc->npcSprite->brush->anim_group, curr->npc->npcSprite->pos.x, curr->npc->npcSprite->pos.y);
@@ -672,6 +715,35 @@ int changeHarmLevel(int indexFrom1, int value){
     return found;
 }
 
+void drawSmokeAtTip(NPC *npc){
+    POINT pos;
+    char *direction = getDirectionSprite(npc->npcSprite);
+    pos.y = npc->npcSprite->pos.y + 6*8;
+    if (strcmp(direction, "_left") == 0){
+        pos.x = npc->npcSprite->pos.x + 8*2;
+    }else{
+        pos.x = npc->npcSprite->pos.x + npc->npcSprite->size.cx - 8;
+    }
+    free(direction);
+    SIZE size = {3, 3};
+    float lifespan = 0.2;
+    float particleLifespan = 0.1;
+    int spawnRadius = 5;
+    int density = 5;
+    int gravityApplied = FALSE;
+    int moveAway = FALSE;
+    COLORREF color = RGB(230, 128, 0);
+    COLORREF secondary_color = RGB(75, 80, 90);
+    int smudge = 100;
+    createParticles(pos, size, lifespan, particleLifespan, spawnRadius, density, gravityApplied, moveAway, color, smudge);
+    createParticles(pos, size, lifespan, particleLifespan, spawnRadius, (int)((double)density*0.7), gravityApplied, !moveAway, secondary_color, smudge);
+    SIZE cloud_size = {10, 10};
+    COLORREF tertiary_color = RGB(200, 200, 200);
+    createParticles(pos, cloud_size, lifespan+1, particleLifespan, spawnRadius + 15, (int)((double)density*0.3), gravityApplied, !moveAway, secondary_color, smudge);
+}
+
+float ideal_smoke_count = 0.7;
+
 void updateNPCs(SpriteGroup *collisions, float dt){
     dt = (dt > 0.05f) ? 0.05f : dt;
     NPCGroup *curr = loaded_NPCs;
@@ -687,6 +759,20 @@ void updateNPCs(SpriteGroup *collisions, float dt){
             curr->npc->hitTime += dt;
         }
         UpdateAnimatedSprite(curr->npc->npcSprite->brush->anim_group, dt);
+        if (curr->npc->weed_smoker && curr->npc->conv == NULL){
+            if (amure(curr->npc)){
+                loadConvoToNPC("./dialogues/weed_sale.txt", curr->npc);
+            }
+        }
+        if (curr->npc->weed_smoker && curr->npc->weed_amount > 3.0 && curr->npc->smoking == FALSE && curr->npc->smoke_inhaled <= 0.0){
+            curr->npc->smoking = TRUE;
+        }
+        if (curr->npc->smoking == FALSE && curr->npc->smoke_inhaled > 0.0){
+            curr->npc->smoke_inhaled -= dt/25.0;
+            if (curr->npc->smoke_inhaled < 0.0){
+                curr->npc->smoke_inhaled = 0.0;
+            }
+        }
         Sprite *selfObj = curr->npc->npcSprite;
         SpriteGroup *curr_coll = collisions;
         int grounded = FALSE;
@@ -707,6 +793,15 @@ void updateNPCs(SpriteGroup *collisions, float dt){
             selfObj->pos.y += curr->npc->forces[1]*dt;
         }
 
+        if (curr->npc->smoking && curr->npc->smoke_inhaled <= ideal_smoke_count) {
+            curr->npc->weed_amount -= dt/10.0;
+            curr->npc->smoke_inhaled += dt/5.0;
+            if (curr->npc->smoke_inhaled >= ideal_smoke_count) curr->npc->smoking = FALSE;
+            ChangeAnimationNoDir("smoking", curr->npc->npcSprite);
+            drawSmokeAtTip(curr->npc);
+            curr = curr->next;
+            continue;
+        }
         if (curr->npc->talking){
             ChangeAnimationNoDir("still", curr->npc->npcSprite);
             if (selfObj->pos.x >= GetPlayerPos().x) ChangeAnimationDirection("left", curr->npc->npcSprite);

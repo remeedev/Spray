@@ -131,6 +131,8 @@ void deleteBrushes(){
 
 // ======== Sprites ===================
 void EraseSprite(Sprite *sprite){ // Deletes sprites
+    if (sprite == NULL) return;
+    if (sprite->name) lockSpriteStatic(sprite);
     free(sprite);
     if (sprite->name) free(sprite->name);
 }
@@ -150,6 +152,7 @@ void CreateSprite(Sprite* sprite, int x, int y, int cx, int cy, COLORREF color){
     sprite->maxHealth = 5;
     sprite->damage = 1;
     sprite->name = NULL;
+    sprite->alr_dead = FALSE;
 }
 
 void CreateImgSprite(Sprite* sprite, int x, int y, int cx, int cy, char *name, int upscale){ // Create strictly single image sprite
@@ -166,6 +169,7 @@ void CreateImgSprite(Sprite* sprite, int x, int y, int cx, int cy, char *name, i
     sprite->maxHealth = 5;
     sprite->damage = 1;
     sprite->name = NULL;
+    sprite->alr_dead = FALSE;
 }
 
 // Only function that allows for names
@@ -182,6 +186,7 @@ void CreateAnimatedSprite(Sprite* sprite, int x, int y, int cx, int cy, char *na
     sprite->health = 5;
     sprite->maxHealth = 5;
     sprite->damage = 1;
+    sprite->alr_dead = FALSE;
     if (character_name){
         sprite->name = (char *)malloc(strlen(character_name) + 1);
         strcpy(sprite->name, character_name);

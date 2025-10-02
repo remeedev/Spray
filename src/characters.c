@@ -48,15 +48,22 @@ void loadCharacterAttr(char *name, char *attribute, char datatype, void *write_t
 }
 
 void loadSpriteCharacter(Sprite *sprite){
-    // if (sprite->name == NULL) return;
-    // loadCharacterAttr(sprite->name, "health", 1, &sprite->health);
-    // if (sprite->health <= 0){
-    //     sprite->health = 0;
-    // }
+    if (sprite == NULL) return;
+    if (sprite->name == NULL) return;
+    loadCharacterAttr(sprite->name, "health", 1, &sprite->health);
+    loadCharacterAttr(sprite->name, "x", 1, &sprite->pos.x);
+    loadCharacterAttr(sprite->name, "y", 1, &sprite->pos.y);
+    loadCharacterAttr(sprite->name, "dead", 1, &sprite->alr_dead);
+    if (sprite->health <= 0){
+        sprite->health = 0;
+    }
 }
 
-void lockSpriteDeath(Sprite *sprite){
-    // if (sprite->name == NULL) return;
-    // int zero_health = 0;
-    // lockCharacterAttr(sprite->name, "health", 1, &zero_health);
+void lockSpriteStatic(Sprite *sprite){
+    if (sprite == NULL) return;
+    if (sprite->name == NULL) return;
+    lockCharacterAttr(sprite->name, "health", 1, &sprite->health);
+    lockCharacterAttr(sprite->name, "x", 1, &sprite->pos.x);
+    lockCharacterAttr(sprite->name, "y", 1, &sprite->pos.y);
+    lockCharacterAttr(sprite->name, "dead", 1, &sprite->alr_dead);
 }

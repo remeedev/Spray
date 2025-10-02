@@ -40,6 +40,10 @@ typedef struct data_lookup{
 
 data_lookup* curr_save = NULL;
 
+/*
+Functions to select prime numbers
+*/
+
 int is_prime(int n){
     if (n < 2 || n % 2 == 0) return FALSE;
     if (n < 4) return TRUE;
@@ -57,6 +61,10 @@ int find_prime(int n){
     }
     return curr_n;
 }
+
+/*
+Save lookup functions
+*/
 
 void delete_save_lookup(data_lookup *save){
     if (save == NULL) return;

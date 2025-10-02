@@ -29,6 +29,6 @@ int GetFrame(AnimationGroup *animated_sprite);
 void UpdateAnimatedSprite(AnimationGroup *animated_sprite, float dt);
 
 // Changes animation playing for an animated sprite
-void ChangeCurrentAnimation(AnimationGroup *animated_sprite, char *animation_name);
+int ChangeCurrentAnimation(AnimationGroup *animated_sprite, char *animation_name);
 
 #endif

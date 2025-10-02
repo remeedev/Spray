@@ -10,10 +10,12 @@
 #include "headers/bicycle.h"
 #include "headers/ui.h"
 #include "headers/savefile.h"
+#include "headers/throwables.h"
+#include "headers/the_chronic.h"
 
 typedef void (*cmdFunc)(int, char **);
 
-char *cmds[] = {"log", "get", "set", "clear", "game_ver", "quit_game", "list_commands", "toggle_debug", "setHarm", "setTime", "saveFile", "test_save", NULL};
+char *cmds[] = {"log", "get", "set", "clear", "game_ver", "quit_game", "list_commands", "toggle_debug", "setHarm", "setTime", "saveFile", "reset_values", NULL};
 
 typedef struct rec_node{
     char *recommendation;
@@ -314,12 +316,20 @@ void setTime(int argc, char **argv){
     PrintToConsole("\n");
 }
 
-void test_save(int argc, char **argv){
-    PrintToConsole("Reading test save file...\n");
-    read_save("/test_save.dat");
-    PrintToConsole("Read the save file and updated values!\n");
-    return;
+void reset_health(int argc, char **argv){
+    if (argc == 1){
+        if (strcmp(argv[0], "help") == 0){
+            PrintToConsole("This function sets the values to the max\n");
+            PrintToConsole("Usage:\n'reset_values'\n");
+            return;
+        }
+    }
+    GetPlayerPtr()->health = GetPlayerPtr()->maxHealth;
+    grenade_count = 3;
+    weed_bags = 5;
+    
+    PrintToConsole("Succesfully reset values!\n");
 }
 
 // Corresponding funcs
-cmdFunc funcs[] = {&logToConsole, &getVar, &setVar, &clearConsole, &printGameVersion, &quitGame, &listCommands, &fullDebug, &changeSpriteStatus, &setTime, &write_save, &test_save};
+cmdFunc funcs[] = {&logToConsole, &getVar, &setVar, &clearConsole, &printGameVersion, &quitGame, &listCommands, &fullDebug, &changeSpriteStatus, &setTime, &write_save, &reset_health};

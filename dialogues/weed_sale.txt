@@ -1,8 +1,7 @@
 ./assets/player/player_header.png
 ./assets/copheader.png
-./assets/copbacker.png
 -
-1: Hola comadreja
+1: Good morning!
 $(weed_sale)
-2: Tiene alguna yerba?
-1: No :(
+2: Do you have any weed?
+1: No

@@ -4,21 +4,6 @@
 #ifndef NPC_H
 #define NPC_H
 
-typedef struct NPC {
-    Sprite* npcSprite;
-    int friendly, targetX, talking, talked, didDamage;
-    float forces[2];
-    float still, stillTimer;
-    float hitTime, hitTimeMax;
-    conversation *conv;
-} NPC;
-
-// NPC Storage
-typedef struct NPCGroup{
-    NPC *npc;
-    struct NPCGroup *next;
-} NPCGroup;
-
 // CONVERSATION LOAD
 void loadConvoToLastSprite(char *file_name);
 void handle_key_down_conv(UINT key);

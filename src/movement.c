@@ -297,7 +297,9 @@ void ChangeAnimationNoDir(char *new_animation_name, Sprite *sprite){
         return;
     }
     sprintf(out, "%s%s", new_animation_name, direction);
-    ChangeCurrentAnimation(sprite->brush->anim_group, out);
+    if (ChangeCurrentAnimation(sprite->brush->anim_group, out) == -1){
+        printf("Unable to change animation to %s\n", out);
+    }
     free(out);
     free(direction);
 }

@@ -159,9 +159,9 @@ int GetFrame(AnimationGroup *animated_sprite){
 }
 
 // Changes animation playing for a group
-void ChangeCurrentAnimation(AnimationGroup *animated_sprite, char *animation_name){
+int ChangeCurrentAnimation(AnimationGroup *animated_sprite, char *animation_name){
     Animation *curr_anim = animated_sprite->playing ? animated_sprite->playing->animation : animated_sprite->animation;
-    if (strcmp(animation_name, curr_anim->animation_name) == 0)return; // Nothing to change
+    if (strcmp(animation_name, curr_anim->animation_name) == 0)return 0; // Nothing to change
     int changed = FALSE;
     AnimationGroup *start = animated_sprite;
     while (start != NULL && !changed){
@@ -175,5 +175,7 @@ void ChangeCurrentAnimation(AnimationGroup *animated_sprite, char *animation_nam
     if (changed){
         curr_anim->curr_image = 0;
         curr_anim->frame_counter = 0.0;
+        return 1;
     }
+    return -1;
 }

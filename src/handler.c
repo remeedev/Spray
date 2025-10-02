@@ -121,6 +121,7 @@ void startGame(){
     save_str("name", &user_name);
     save_long("x", &GetPlayerPtr()->pos.x);
     save_long("y", &GetPlayerPtr()->pos.y);
+    save_int("bag_count", &weed_bags);
 }
 
 void openOptions(){

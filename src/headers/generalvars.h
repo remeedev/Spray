@@ -3,6 +3,7 @@
 #ifndef generalvars
 #define generalvars
 
+
 // Structures
 typedef struct Animation {
     HBITMAP base_image;
@@ -33,7 +34,7 @@ typedef struct Sprite {
     POINT pos;
     SIZE size;
     BrushPalette* brush;
-    int health, damage, maxHealth;
+    int health, damage, maxHealth, alr_dead;
     char *name;
 } Sprite;
 
@@ -42,6 +43,7 @@ typedef struct SpriteGroup {
     struct SpriteGroup* next;
 } SpriteGroup;
 
+typedef struct NPC NPC;
 
 typedef struct conversation {
     wchar_t *line;
@@ -51,7 +53,7 @@ typedef struct conversation {
     size_t option_count;
     int option_selected;
     int (*skip_check)(void);
-    struct conversation *(*option_handler)(struct conversation *);
+    struct conversation *(*option_handler)(struct conversation *, NPC* npc);
     struct conversation *next;
 } conversation;
 
@@ -60,6 +62,24 @@ typedef struct textNode {
     struct textNode *next;
     struct textNode *child;
 }textNode;
+
+// NPC Structs
+typedef struct NPC {
+    Sprite* npcSprite;
+    int friendly, targetX, talking, talked, didDamage;
+    float forces[2];
+    float still, stillTimer;
+    float hitTime, hitTimeMax;
+    int weed_smoker, smoking;
+    float weed_amount, smoke_inhaled;
+    conversation *conv;
+} NPC;
+
+// NPC Storage
+typedef struct NPCGroup{
+    NPC *npc;
+    struct NPCGroup *next;
+} NPCGroup;
 
 // Recursive search inside tree
 textNode *find_text_node(textNode *structure, char *value);
