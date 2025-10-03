@@ -25,6 +25,8 @@ int check_pending_overwrite(char *key);
 void overwrite(char *key, void *value, int freeReady);
 void add_static_save(char *key, void *value, char datatype);
 
+void delete_save(char *save_name);
+
 void end_save(int final);
 
 #endif

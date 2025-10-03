@@ -81,6 +81,8 @@ int current_save = 0;
 
 void startGame();
 
+int curr_save_opt = 1;
+
 void selectSave(){
     if (save_names){
         for (int i = 0; i < save_count; i++){
@@ -91,12 +93,12 @@ void selectSave(){
         free(save_files);
     }
     save_count = get_saves(&save_names, &save_files);
-    if (save_count == 0) {
-        char *save_name = create_brand_new_save();
-        startGame();
-        read_save(save_name);
-        selecting_save = FALSE;
-        return;
+    if (save_count == 0){
+        curr_save_opt = 1;
+        current_save = 0;
+    }else{
+        curr_save_opt = 0;
+        current_save = 0;
     }
     selecting_save = TRUE;
 }
@@ -146,37 +148,119 @@ int currMenuOpt = 0;
 
 char *funText = "The cat's name is max!";
 
+void load_save_opt(){
+    startGame();
+    read_save(save_files[current_save]);
+    selecting_save = FALSE;
+}
+
+void create_new_save_opt(){
+    char *save_name = create_brand_new_save();
+    startGame();
+    read_save(save_name);
+    selecting_save = FALSE;
+}
+int delete_confirmation = FALSE;
+
+void delete_save_opt(){
+    if (delete_confirmation){
+        if (save_count > 0){
+            delete_save(save_files[current_save]);
+            selectSave();
+            if (save_count == 0) curr_save_opt = 1;
+        }
+        return;
+    }
+    delete_confirmation = TRUE;
+}
+
+char *save_options[] = {"[] Load Save", "+ Create New Save", "- Delete Save", NULL};
+const int save_opt_count = 3;
+void (*save_funcs[])() = {&load_save_opt, &create_new_save_opt, &delete_save_opt};
+
 void drawGameMenu(){
     if (showingCredits) return;
     PaintSprite(hdcMem, mainMenu);
     SetTextAlign(hdcMem, TA_TOP);
     SetBkMode(hdcMem, TRANSPARENT);
     SelectObject(hdcMem, GameFont);
+    TEXTMETRIC tm;
+    GetTextMetrics(hdcMem, &tm);
 
     if (selecting_save){
-        SetTextAlign(hdcMem, TA_CENTER | VTA_CENTER);
-        int mid_x = (int)((float)game_res[0]/2.0);
-        int v_padding = 5;
-        int h_padding = 80;
-        RECT background_box = {h_padding-25, v_padding, game_res[0] - h_padding + 25, game_res[1]-v_padding};
-        int box_height = (int)((float)(background_box.bottom - background_box.top)/3.0);
-        FillRect(hdcMem, &background_box, CreateNewColorBrush(RGB(150, 123, 75))->brush);
-        for (int i = 0; i < 3; i++){
-            RECT save_rect = {h_padding, box_height*i + v_padding + background_box.top, game_res[0]-h_padding, box_height*(i + 1)-(v_padding*2)};
-            HBRUSH brush = i == current_save ? CreateNewColorBrush(RGB(120, 100, 60))->brush : CreateNewColorBrush(RGB(173, 135, 87))->brush;
-            FillRect(hdcMem, &save_rect, brush);
-            POINT mid_pos = {(save_rect.right-save_rect.left)/2, (save_rect.bottom - save_rect.top)/2};
-            mid_pos.y += i*box_height;
-            if (i < save_count){
-                TextOut(hdcMem, mid_pos.x, mid_pos.y, save_names[i], strlen(save_names[i]));
+        SetTextAlign(hdcMem, TA_CENTER | TA_BASELINE);
+
+        // Save colors
+        COLORREF border_color = RGB(190, 151, 106);
+        COLORREF outer_bg_color = RGB(146, 105, 59);
+        COLORREF inner_bg_color = RGB(121, 85, 43);
+
+        // Draw background
+        POINT actual_mid = {(long)((double)game_res[0]/2.0), (long)((double)game_res[1]/2.0)};
+        SIZE bg_size = {1016, 572};
+        RECT border_bg = {actual_mid.x-(bg_size.cx/2), actual_mid.y-(bg_size.cy/2), actual_mid.x+(bg_size.cx/2), actual_mid.y+(bg_size.cy/2)};
+        RECT save_bg = {border_bg.left+8, border_bg.top+8, border_bg.right-8, border_bg.bottom - 8};
+        
+        // DRAW BG
+        FillRect(hdcMem, &border_bg, CreateNewColorBrush(border_color)->brush);
+        FillRect(hdcMem, &save_bg, CreateNewColorBrush(outer_bg_color)->brush);
+
+        POINT mid_pos;
+        mid_pos.x = actual_mid.x;
+        for (int i = 0; i < save_count; i++){
+            int box_height = 175;
+            int top = save_bg.top + 5 + (box_height + 10)*i;
+            // Get Save border
+            RECT save_box = {save_bg.left+25, top, save_bg.right-25, top + box_height};
+            mid_pos.y = save_box.top + (box_height - tm.tmHeight + tm.tmAscent)/2;
+            
+            // Get Save background
+            RECT save_box_bg = {
+                save_box.left + 5,
+                save_box.top + 5,
+                save_box.right - 5,
+                save_box.bottom - 5
+            };
+
+            // DRAW THE BOX
+            FillRect(hdcMem, &save_box, CreateNewColorBrush(border_color)->brush);
+            FillRect(hdcMem, &save_box_bg, CreateNewColorBrush(inner_bg_color)->brush);
+
+            if (i == current_save){
+                SetTextColor(hdcMem, highlight_text_color);
             }else{
-                char *create_text = "+ Create Save";
-                TextOut(hdcMem, mid_pos.x, mid_pos.y, create_text, strlen(create_text));
+                SetTextColor(hdcMem, regular_text_color);
             }
+
+            TextOut(hdcMem, mid_pos.x, mid_pos.y, save_names[i], strlen(save_names[i]));
         }
+        if (save_count == 0){
+            char *no_saves_text = "There are no saves currently!";
+            TextOut(hdcMem, mid_pos.x, save_bg.top + 5 + tm.tmHeight, no_saves_text, strlen(no_saves_text));
+        }
+
+        // DRAW Button options
+        int buttons_width = 20 + (strlen(save_options[2]) + strlen(save_options[1]) + strlen(save_options[0]))*tm.tmAveCharWidth;
+        int buttons_height = tm.tmHeight + tm.tmAscent;
+        RECT buttons_bg = {border_bg.right-buttons_width, border_bg.bottom, border_bg.right, border_bg.bottom + buttons_height};
+        FillRect(hdcMem, &buttons_bg, CreateNewColorBrush(border_color)->brush);
+        SetTextAlign(hdcMem, TA_LEFT | TA_BOTTOM);
+        int curr_x = buttons_bg.left + 5;
+        for (int i = 0; i < 3; i++){
+            if (i == curr_save_opt){
+                SetTextColor(hdcMem, highlight_text_color);
+            }else{
+                if (save_count != 0){
+                    SetTextColor(hdcMem, regular_text_color);
+                }else{
+                    SetTextColor(hdcMem, undermined_text_color);
+                }
+            }
+            TextOut(hdcMem, curr_x, buttons_bg.bottom, save_options[i], strlen(save_options[i]));
+            curr_x += strlen(save_options[i])*tm.tmAveCharWidth + 5;
+        }
+
     }else{
-        TEXTMETRIC tm;
-        GetTextMetrics(hdcMem, &tm);
         int curr = 0;
         int startPadding = 225;
         int leftMargin = 20;
@@ -226,19 +310,29 @@ void handleKEYDOWN(UINT key){
             if (current_save > 0) current_save--;
         }
         if (key == VK_DOWN){
-            if (current_save < save_count && current_save < 2) current_save++;
+            if (current_save < save_count - 1) current_save++;
+        }
+        if (key == VK_RIGHT){
+            if (save_count == 0) {
+                curr_save_opt = 1;
+                return;
+            }
+            if (curr_save_opt < save_opt_count - 1) curr_save_opt++;
+        }
+        if (key == VK_LEFT){
+            if (save_count == 0) {
+                curr_save_opt = 1;
+                return;
+            }
+            if (curr_save_opt > 0) curr_save_opt--;
         }
         if (key == VK_RETURN){
-            if (current_save < save_count){
-                startGame();
-                read_save(save_files[current_save]);
-            }else{
-                char *save_name = create_brand_new_save();
-                startGame();
-                read_save(save_name);
+            if (curr_save_opt < save_opt_count){
+                save_funcs[curr_save_opt]();
             }
-            selecting_save = FALSE;
+            return;
         }
+        if (delete_confirmation) delete_confirmation = FALSE;
         return;
     }
     switch(key){

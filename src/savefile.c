@@ -15,6 +15,7 @@ DATATYPES (denoted by single char of ascii):
 #include <string.h>
 #include <windows.h>
 #include <dirent.h>
+#include <time.h>
 
 // Time srand was already set
 #include <stdlib.h>
@@ -497,16 +498,20 @@ int get_saves(char ***save_names, char ***file_names){
     while ((de = readdir(dr)) != NULL){
         if (de->d_name[0] == '.') continue;
         char *file_name = de->d_name;
+        int last_period_pos = strlen(file_name) - 1;
+        while (file_name[last_period_pos] != '.') last_period_pos--;
         int pos = 0;
-        while (file_name[pos] != '.') pos++;
+        while (pos < last_period_pos) pos++;
         char *save_name = (char *)malloc(pos + 1);
         pos = 0;
-        while (file_name[pos] != '.') {
+        while (pos < last_period_pos) {
             if (file_name[pos] == '_'){
                 save_name[pos] = ' ';
+            }else{if(file_name[pos] == '.'){
+                save_name[pos] = ':';
             }else{
                 save_name[pos] = file_name[pos];
-            }
+            }}
             pos++;
         }
         save_name[pos++] = '\0';
@@ -565,7 +570,17 @@ char* create_brand_new_save(){
         printf("There has been an error opening default save file!\n");
         return NULL;
     }
-    char *save_name = "/unnamed_save.dat";
+    time_t current_time;
+    char time_str[100];
+    current_time = time(NULL);
+    struct tm* _time = localtime(&current_time);
+    sprintf(time_str, "/%d-%d-%d_%d.%d.%d.dat", _time->tm_year + 1900, _time->tm_mon, _time->tm_mday, _time->tm_hour, _time->tm_min, _time->tm_sec);
+    char *save_name = (char *)malloc(strlen(time_str) + 1);
+    if (save_name == NULL){
+        printf("Error allocating space for save_name!\n");
+        return NULL;
+    }
+    strcpy(save_name, time_str);
     char *dst_name = (char *)malloc(strlen(save_folder) + strlen(save_name) + 1);
     if (dst_name == NULL){
         printf("There was an error allocating space for save folder!\n");
@@ -588,6 +603,22 @@ char* create_brand_new_save(){
     fclose(dst_file);
     fclose(src_file);
     return save_name;
+}
+
+void delete_save(char *save_name){
+    char *file_name = (char *)malloc(strlen(save_folder) + strlen(save_name) + 1);
+    if (file_name == NULL){
+        printf("There was an error allocating space for save folder!\n");
+        return;
+    }
+    strcpy(file_name, save_folder);
+    strcat(file_name, save_name);
+    FILE *fptr = fopen(file_name, "rb");
+    if (fptr == NULL) return;
+    fclose(fptr);
+    if (remove(file_name) != 0){
+        printf("There was an error deleting the save!\n");
+    }
 }
 
 void end_save(int final){
