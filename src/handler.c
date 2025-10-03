@@ -12,6 +12,7 @@
 #include "headers/throwables.h"
 #include "headers/the_chronic.h"
 #include "headers/animations.h"
+#include "headers/lang.h"
 
 // WATERMARK NECESSARY DATA
 int watermarkShow = TRUE;
@@ -24,6 +25,9 @@ float time_since_anim = 0.0f;
 int time_between_anim = 5;
 
 Sprite *watermark = NULL;
+
+// Options Variables
+int options_menu_visible = FALSE;
 
 void endMainMenu(){
     if (mainMenu) EraseSprite(mainMenu);
@@ -71,6 +75,9 @@ void startGameSystem(HWND hWnd, int screen_width, int screen_height){
     if (watermarkShow){
         loadWatermark();
     }
+    save_int_conf("lang", &lang);
+    save_int_conf("wm_s", &watermarkShow);
+    read_save_conf();
 }
 
 char **save_names = NULL;
@@ -127,7 +134,7 @@ void startGame(){
 }
 
 void openOptions(){
-
+    options_menu_visible = TRUE;
 }
 
 void showCredits(){
@@ -142,7 +149,7 @@ void ForceGameMenu(){
 }
 
 // GAME MENU INFORMATION
-char *menu_opts[] = {"Start Game", "Options", "Credits", "Quit Game", NULL};
+// Texts has gone to lang.c, ain't gonna add translation to each file that puts text inside the screen, only one
 void (*menu_funcs[])() = {&selectSave, &openOptions, &showCredits, &forceExit};
 int currMenuOpt = 0;
 
@@ -174,12 +181,11 @@ void delete_save_opt(){
     delete_confirmation = TRUE;
 }
 
-char *save_options[] = {"[] Load Save", "+ Create New Save", "- Delete Save", NULL};
 const int save_opt_count = 3;
 void (*save_funcs[])() = {&load_save_opt, &create_new_save_opt, &delete_save_opt};
 
 void drawGameMenu(){
-    if (showingCredits) return;
+    if (showingCredits || options_menu_visible) return;
     PaintSprite(hdcMem, mainMenu);
     SetTextAlign(hdcMem, TA_TOP);
     SetBkMode(hdcMem, TRANSPARENT);
@@ -240,7 +246,7 @@ void drawGameMenu(){
         }
 
         // DRAW Button options
-        int buttons_width = 20 + (strlen(save_options[2]) + strlen(save_options[1]) + strlen(save_options[0]))*tm.tmAveCharWidth;
+        int buttons_width = 20 + (strlen(get_save_option_text(2)) + strlen(get_save_option_text(1)) + strlen(get_save_option_text(0)))*tm.tmAveCharWidth;
         int buttons_height = tm.tmHeight + tm.tmAscent;
         RECT buttons_bg = {border_bg.right-buttons_width, border_bg.bottom, border_bg.right, border_bg.bottom + buttons_height};
         FillRect(hdcMem, &buttons_bg, CreateNewColorBrush(border_color)->brush);
@@ -256,22 +262,23 @@ void drawGameMenu(){
                     SetTextColor(hdcMem, undermined_text_color);
                 }
             }
-            TextOut(hdcMem, curr_x, buttons_bg.bottom, save_options[i], strlen(save_options[i]));
-            curr_x += strlen(save_options[i])*tm.tmAveCharWidth + 5;
+            TextOut(hdcMem, curr_x, buttons_bg.bottom, get_save_option_text(i), strlen(get_save_option_text(i)));
+            curr_x += strlen(get_save_option_text(i))*tm.tmAveCharWidth + 5;
         }
 
-    }else{
+    }else {
+        // Draw Main Menu
         int curr = 0;
         int startPadding = 225;
         int leftMargin = 20;
-        while (menu_opts[curr] != NULL){
+        while (get_mm_option_text(curr) != NULL){
             int x = 0;
             SetTextColor(hdcMem, regular_text_color);
             if (currMenuOpt == curr){
                 x = 20;
                 SetTextColor(hdcMem, highlight_text_color);
             }
-            TextOut(hdcMem, x + leftMargin, startPadding + curr*(tm.tmHeight+tm.tmAscent), menu_opts[curr], strlen(menu_opts[curr]));
+            TextOut(hdcMem, x + leftMargin, startPadding + curr*(tm.tmHeight+tm.tmAscent), get_mm_option_text(curr), strlen(get_mm_option_text(curr)));
             curr++;
         }
         SetTextAlign(hdcMem, TA_BOTTOM | TA_RIGHT);
@@ -280,7 +287,103 @@ void drawGameMenu(){
     }
 }
 
+void back_from_options_menu(UINT key){
+    if (key != VK_RETURN) return;
+    options_menu_visible = FALSE;
+}
+
+void change_watermark_show(UINT key){
+    if (key == VK_RETURN) watermarkShow = !watermarkShow;
+}
+
+void change_language(UINT key){
+    if (key == VK_RIGHT) change_lang_next();
+    if (key == VK_LEFT) change_lang_prev();
+}
+
+int option_key_selected = 0;
+void (*option_key_handle[])(UINT) = {&change_language, &change_watermark_show, &back_from_options_menu, NULL};
+
+void drawOptionsMenu(){
+    if (!options_menu_visible) return;
+    TEXTMETRICW tm;
+    GetTextMetricsW(hdcMem, &tm);
+    
+    PaintSprite(hdcMem, pause_menu_anim);
+
+    SetTextAlign(hdcMem, TA_CENTER | TA_TOP);
+    SelectObject(hdcMem, GameFont);
+    SetTextColor(hdcMem, regular_text_color);
+    TextOutW(hdcMem, (int)((double)game_res[0]/2.0), 0, get_options_option_text(0), wcslen(get_options_option_text(0)));
+
+    SetTextAlign(hdcMem, TA_LEFT | TA_TOP);
+    int curr_opt_added = 0;
+    int x = 15;
+    int right_margin = game_res[0] - 10;
+    int y = tm.tmHeight;
+    TextOutW(hdcMem, x, y, get_options_option_text(1), wcslen(get_options_option_text(1)));
+
+    // < lang >
+    SetTextAlign(hdcMem, TA_RIGHT | TA_TOP);
+    TextOut(hdcMem, right_margin, y, ">", 1);
+    right_margin -= tm.tmAveCharWidth*2;
+    if (curr_opt_added == option_key_selected){
+        SetTextColor(hdcMem, highlight_text_color);
+    }else{
+        SetTextColor(hdcMem, regular_text_color);
+    }
+    TextOutW(hdcMem, right_margin, y, get_options_option_text(2 + get_lang()), wcslen(get_options_option_text(2 + get_lang())));
+    right_margin -= tm.tmAveCharWidth*( wcslen(get_options_option_text(2 + get_lang())) + 1);
+    SetTextColor(hdcMem, regular_text_color);
+    TextOut(hdcMem, right_margin, y, "<", 1);
+    curr_opt_added++;
+
+    SetTextAlign(hdcMem, TA_LEFT | TA_TOP);
+    y += tm.tmHeight + 10;
+    TextOutW( hdcMem, x, y, get_options_option_text(4), wcslen( get_options_option_text(4) ) );
+    
+    // On/Off
+    right_margin = game_res[0] - 10;
+    SetTextAlign(hdcMem, TA_RIGHT | TA_TOP);
+    if (curr_opt_added == option_key_selected){
+        SetTextColor(hdcMem, highlight_text_color);
+    }else{
+        SetTextColor(hdcMem, regular_text_color);
+    }
+    TextOutW(hdcMem, right_margin, y, watermarkShow ? get_options_option_text(7) : get_options_option_text(6), wcslen(watermarkShow ? get_options_option_text(7) : get_options_option_text(6)));
+    SetTextColor(hdcMem, regular_text_color);
+    curr_opt_added++;
+
+    SetTextAlign(hdcMem, TA_BOTTOM | TA_LEFT);
+
+    if (curr_opt_added == option_key_selected){
+        SetTextColor(hdcMem, highlight_text_color);
+    }else{
+        SetTextColor(hdcMem, regular_text_color);
+    }
+    TextOutW(hdcMem, x, game_res[1] - 15, get_options_option_text(5), wcslen(get_options_option_text(5)));
+}
+
 void handleKEYDOWN(UINT key){
+    if (watermarkShow == FALSE && watermark != NULL) endWatermark();
+    if (options_menu_visible){
+        if (key == VK_RIGHT || key == VK_LEFT || key == VK_RETURN){
+            option_key_handle[option_key_selected](key);
+            write_conf();
+        }
+        if (key == VK_ESCAPE){
+            options_menu_visible = FALSE;
+        }
+        if (key == VK_UP){
+            if (option_key_selected > 0) option_key_selected--;
+        }
+        if (key == VK_DOWN){
+            size_t len = 0;
+            while (option_key_handle[len] != NULL) len++;
+            if (option_key_selected < len - 1) option_key_selected++;
+        }
+        return;
+    }
     if (showingCredits){
         if (key == VK_SPACE){
             switch_credit_speed(TRUE);
@@ -298,7 +401,6 @@ void handleKEYDOWN(UINT key){
     if (watermark != NULL){
         if (key == VK_SPACE){
             endWatermark();
-            watermarkShow = FALSE;
         }
         return;
     }
@@ -341,7 +443,7 @@ void handleKEYDOWN(UINT key){
             break;
         case VK_DOWN: ;
             size_t opt_count = 0;
-            while (menu_opts[opt_count] != NULL)opt_count++;
+            while (get_mm_option_text(opt_count) != NULL)opt_count++;
             if (currMenuOpt < opt_count-1) currMenuOpt++;
             break;
         case VK_RETURN: ;
@@ -370,8 +472,14 @@ void handleCHAR(UINT key){
     }
 }
 
+
+
 void taskDraws(){
     // Needs update for special feature
+    if (options_menu_visible){
+        drawOptionsMenu();
+        return;
+    }
     if (showingCredits){
         draw_credits(hdcMem);
         return;
@@ -387,8 +495,9 @@ void taskDraws(){
         SetBkMode(hdcMem, TRANSPARENT);
         SetTextAlign(hdcMem, TA_BOTTOM | TA_LEFT);
         SelectObject(hdcMem, GameFont);
-        char *hintText = "Press space bar to skip cutscene";
+        char *hintText = skip_text(VK_SPACE);
         TextOut(hdcMem, 0, game_res[1], hintText, strlen(hintText));
+        free(hintText);
         return;
     }
     drawGameMenu();
@@ -428,20 +537,20 @@ void drawEvent(HWND hWnd){
 
 void updateEvent(float dt){
     update_credits(dt);
-    if (in_level){
-        if (!paused) Update(dt);
-        if (paused) {
-            if (GetFrame(pause_menu_anim->brush->anim_group) != 15) {
-                UpdateAnimatedSprite(pause_menu_anim->brush->anim_group, dt);
-            }else{
-                time_since_anim += dt;
-                if (time_since_anim > time_between_anim){
-                    time_since_anim = 0.0f;
-                    while (GetFrame(pause_menu_anim->brush->anim_group) != 0) UpdateAnimatedSprite(pause_menu_anim->brush->anim_group, dt);
-                    time_between_anim = 5 + rand()%5;
-                }
+    if (paused || options_menu_visible) {
+        if (GetFrame(pause_menu_anim->brush->anim_group) != 15) {
+            UpdateAnimatedSprite(pause_menu_anim->brush->anim_group, dt);
+        }else{
+            time_since_anim += dt;
+            if (time_since_anim > time_between_anim){
+                time_since_anim = 0.0f;
+                while (GetFrame(pause_menu_anim->brush->anim_group) != 0) UpdateAnimatedSprite(pause_menu_anim->brush->anim_group, dt);
+                time_between_anim = 5 + rand()%5;
             }
         }
+    }
+    if (in_level){
+        if (!paused) Update(dt);
         return;
     }
     if (watermarkShow && wm_time < wm_duration && watermark != NULL){

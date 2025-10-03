@@ -24,6 +24,7 @@ DATATYPES (denoted by single char of ascii):
 size_t get_data_size(char datatype);
 
 char *save_folder = "./save";
+char *conf_file = "./options.dat";
 
 typedef struct save_data{
     char datatype;
@@ -40,6 +41,7 @@ typedef struct data_lookup{
 } data_lookup;
 
 data_lookup* curr_save = NULL;
+data_lookup* conf_save = NULL;
 
 /*
 Functions to select prime numbers
@@ -112,11 +114,12 @@ data_lookup *create_empty_save(int capacity){
 
 void init_save(){
     curr_save = create_empty_save(7);
+    conf_save = create_empty_save(7);
 }
 
-int hash_key(char *key_name){
+int hash_key(char *key_name, data_lookup* table){
     if (key_name == NULL) return -1;
-    if (curr_save == NULL) curr_save = create_empty_save(7);
+    if (table == NULL) table = create_empty_save(7);
     // fractional part of [weighted sum * k] times capacity
     double curr_value = 0.0;
     int curr = 0;
@@ -124,13 +127,13 @@ int hash_key(char *key_name){
         curr_value += (curr + 1)*(key_name[curr]);
         curr++;
     }
-    curr_value *= curr_save->k;
+    curr_value *= table->k;
     curr_value = fmod(curr_value, 1.0);
-    curr_value *= curr_save->capacity;
+    curr_value *= table->capacity;
     curr_value = floor(curr_value);
     int pos = (int) curr_value;
-    if (curr_save->searches[pos]->key != NULL){
-        while (curr_save->searches[pos]->key != NULL && strcmp(key_name, curr_save->searches[pos]->key) != 0) pos = (pos + 1)%curr_save->capacity; // Find available pos or actual pos
+    if (table->searches[pos]->key != NULL){
+        while (table->searches[pos]->key != NULL && strcmp(key_name, table->searches[pos]->key) != 0) pos = (pos + 1)%table->capacity; // Find available pos or actual pos
     }
     return pos;
 }
@@ -140,7 +143,7 @@ void expand_lookup(data_lookup** l_u);
 // returns if saved value
 int add_to_lookup(data_lookup **l_up, char *name, void *assigned_value, char value_type, int freeReady){
     data_lookup *l_u = *l_up;
-    int add_position = hash_key(name);
+    int add_position = hash_key(name, *l_up);
     if (l_u->searches[add_position]->key != NULL){
         printf("Double assignment to same key name!\n");
         printf("Tried to write %s but found %s\n", name, l_u->searches[add_position]->key);
@@ -163,8 +166,12 @@ int add_to_save(char *name, void *assigned_value, char value_type, int freeReady
     return add_to_lookup(&curr_save, name, assigned_value, value_type, freeReady);
 }
 
+int add_to_conf(char *name, void *assigned_value, char value_type, int freeReady){
+    return add_to_lookup(&conf_save, name, assigned_value, value_type, freeReady);
+}
+
 void remove_from_lookup(data_lookup *l_u, char *key){
-    int add_position = hash_key(key);
+    int add_position = hash_key(key, l_u);
     if (l_u->searches[add_position]->key != NULL){
         free(l_u->searches[add_position]->key);
         l_u->searches[add_position]->key = NULL;
@@ -178,7 +185,7 @@ void remove_from_save(char *name){
 }
 
 save_data* get_from_lookup(data_lookup *l_u, char *key){
-    int add_position = hash_key(key);
+    int add_position = hash_key(key, l_u);
     if (l_u->searches[add_position]->key != NULL){
         return l_u->searches[add_position];
     }
@@ -257,6 +264,31 @@ int save_long(char *name, long *value){
     return add_to_lookup(&curr_save, name, value, (char) 5, FALSE);
 }
 
+int save_int_conf(char *name, int *value){
+    if (conf_save == NULL) conf_save = create_empty_save(7);
+    return add_to_lookup(&conf_save, name, value, (char) 1, FALSE);
+}
+
+int save_float_conf(char *name, float *value){
+    if (conf_save == NULL) conf_save = create_empty_save(7);
+    return add_to_lookup(&conf_save, name, value, (char) 2, FALSE);
+}
+
+int save_double_conf(char *name, double *value){
+    if (conf_save == NULL) conf_save = create_empty_save(7);
+    return add_to_lookup(&conf_save, name, value, (char) 3, FALSE);
+}
+
+int save_str_conf(char *name, char **value){
+    if (conf_save == NULL) conf_save = create_empty_save(7);
+    return add_to_lookup(&conf_save, name, value, (char) 4, FALSE);
+}
+
+int save_long_conf(char *name, long *value){
+    if (conf_save == NULL) conf_save = create_empty_save(7);
+    return add_to_lookup(&conf_save, name, value, (char) 5, FALSE);
+}
+
 size_t get_data_size(char a){
     switch (a) {
         case 0:
@@ -302,14 +334,21 @@ unsigned char *raw_long(long a){
 
 void write_save_custom(data_lookup *l_u, char *save_name){
     if (l_u == NULL) return;
-    char *file_name = (char *)malloc(strlen(save_folder) + strlen(save_name) + 1);
+    char *file_name;
+    if (strcmp(save_name, conf_file) != 0){
+        file_name = (char *)malloc(strlen(save_folder) + strlen(save_name) + 1);
+    }else{
+        file_name = (char *)malloc(strlen(save_name) + 1);
+    }
     if (file_name == NULL){
         printf("There was an error allocating space for save folder!\n");
         return;
     }
-    strcpy(file_name, save_folder);
+    file_name[0] = '\0';
+    if (strcmp(save_name, conf_file) != 0) strcpy(file_name, save_folder);
     strcat(file_name, save_name);
     FILE *ptr = fopen(file_name, "wb");
+    free(file_name);
 
     unsigned char *raw_data = NULL;
     size_t data_length = 0;
@@ -433,24 +472,34 @@ void write_save(){
     write_save_custom(curr_save, previous_save);
 }
 
-void read_save(char *save_name){
-    if (previous_save != NULL) free(previous_save);
-    previous_save = (char *)malloc(strlen(save_name) + 1);
-    if (previous_save == NULL){
-        printf("Couldn't allocate space for current load name!\n");
-        return;
+void write_conf(){
+    write_save_custom(conf_save, conf_file);
+}
+
+void read_save_to_lookup(char *save_name, data_lookup *l_u){
+    if (strcmp(save_name, conf_file) != 0){
+        if (previous_save != NULL) free(previous_save);
+        previous_save = (char *)malloc(strlen(save_name) + 1);
+        if (previous_save == NULL){
+            printf("Couldn't allocate space for current load name!\n");
+            return;
+        }
+        strcpy(previous_save, save_name);
     }
-    strcpy(previous_save, save_name);
     char *file_name = (char *)malloc(strlen(save_folder) + strlen(save_name) + 1);
     if (file_name == NULL){
         printf("There was an error allocating space for save folder!\n");
+        free(previous_save);
         return;
     }
-    strcpy(file_name, save_folder);
+    file_name[0] = '\0';
+    if (strcmp(save_name, conf_file) != 0) strcpy(file_name, save_folder);
     strcat(file_name, save_name);
     FILE *ptr = fopen(file_name, "rb");
     if (ptr == NULL){
         printf("Error opening save file!\n");
+        free(previous_save);
+        free(file_name);
         return;
     }
     int name_size = 0;
@@ -462,19 +511,22 @@ void read_save(char *save_name){
         name[name_size] = '\0';
 
         char datatype = fgetc(ptr);
-        save_data *elem = get_from_lookup(curr_save, name);
+        save_data *elem = get_from_lookup(l_u, name);
         int value_size = 0;
         fread(&value_size, sizeof(int), 1, ptr);
         if (elem == NULL){
             void *elem_value = malloc(value_size);
             add_static_save(name, elem_value, datatype);
-            elem = get_from_lookup(curr_save, name);
+            elem = get_from_lookup(l_u, name);
         }
         if (datatype == 4) {
             char **to_write = (char **)elem->obj;
             *to_write = (char *)malloc(value_size + 1);
             if (*to_write == NULL){
                 printf("There was an error unpacking the values from the save!\n");
+                free(previous_save);
+                free(file_name);
+                fclose(ptr);
                 return;
             }
             for (int i = 0; i < value_size; i++){
@@ -487,6 +539,16 @@ void read_save(char *save_name){
         free(name);
     }
     fclose(ptr);
+}
+
+void read_save(char *save_name){
+    if (curr_save == NULL) init_save();
+    read_save_to_lookup(save_name, curr_save);
+}
+
+void read_save_conf(){
+    if (conf_save == NULL) init_save();
+    read_save_to_lookup(conf_file, conf_save);
 }
 
 int get_saves(char ***save_names, char ***file_names){

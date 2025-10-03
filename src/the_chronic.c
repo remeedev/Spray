@@ -79,7 +79,7 @@ void start_weed_convos(){
 conversation * process_weed_sale(conversation *curr_conv, NPC *npc){
     if (curr_conv->option_selected == 0) {
         weed_bags--;
-        npc->weed_amount += 10.0;
+        npc->weed_amount += 5.0;
         return have_weed;
     }
     if (curr_conv->option_selected == 1) {

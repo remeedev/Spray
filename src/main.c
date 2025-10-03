@@ -57,6 +57,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) {
             break;
         case WM_CLOSE:
             running = FALSE;
+            end_save(TRUE);
             DestroyWindow(hWnd);
             break;
         case WM_DESTROY:

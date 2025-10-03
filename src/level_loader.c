@@ -14,6 +14,7 @@
 #include "headers/throwables.h"
 #include "headers/ui.h"
 #include "headers/savefile.h"
+#include "headers/lang.h"
 
 // Admin Variables
 int showCollisions = FALSE;
@@ -98,6 +99,8 @@ typedef struct RedirectItem{
     char *redirect;
     struct RedirectItem *next;
 } RedirectItem;
+
+Sprite *pause_menu_anim = NULL;
 
 // Redirect init
 SpriteGroup *redirects = NULL;
@@ -368,8 +371,6 @@ void loadLevel(char *level_name){
     strcpy(prev_level_loaded, level_name);
 }
 
-Sprite *pause_menu_anim = NULL;
-
 void StartGraphics(HWND hWnd){
     save_str("curr_level", &current_level_name);
     HDC hdc = GetDC(hWnd);
@@ -412,7 +413,6 @@ void forceExit(){
     PostMessage(mainWindow, WM_QUIT, 0, 0);
 }
 
-char *pauseMenuOptions[] = {"Resume Game", "Options", "Credits", "Back to Main Menu", "Quit Game", NULL};
 void (*pauseMenuFuncs[])() = {&resume_game, &openOptions, &showCredits, &ForceGameMenu, &forceExit};
 
 void UIKeyDown(UINT key){
@@ -427,7 +427,7 @@ void UIKeyDown(UINT key){
             }
         }
         if (key == VK_DOWN || key == 'S'){
-            if (pauseMenuOptions[paused_opt + 1] != NULL){
+            if (get_pause_option_text(paused_opt + 1) != NULL){
                 paused_opt++;
             }
         }
@@ -463,13 +463,13 @@ void DrawPauseMenu(HDC hdcMem, RECT *rcPaint){
     int top_margin = 100;
     int curr_opt = 0;
     SelectObject(hdcMem, GameFont);
-    while (pauseMenuOptions[curr_opt] != NULL){
+    while (get_pause_option_text(curr_opt) != NULL){
         if (curr_opt == paused_opt){
             SetTextColor(hdcMem, highlight_text_color);
         } else{
             SetTextColor(hdcMem, undermined_text_color);
         }
-        TextOut(hdcMem, game_res[0]/2, spacing * (curr_opt + 1) + top_margin, pauseMenuOptions[curr_opt], strlen(pauseMenuOptions[curr_opt]));
+        TextOut(hdcMem, game_res[0]/2, spacing * (curr_opt + 1) + top_margin, get_pause_option_text(curr_opt), strlen(get_pause_option_text(curr_opt)));
         curr_opt++;
     }
     SetTextColor(hdcMem, ignore_text_color);
@@ -544,12 +544,12 @@ void DrawGame(){
         // PaintSpriteGroup(hdcMem, redirects);
         DrawCollisionsIfNeeded(hdcMem);
         if (!talking) drawAllNPCs(hdcMem);
+        drawParticles(hdcMem);
         PaintSprite(hdcMem, GetPlayerPtr());
         if (talking) drawAllNPCs(hdcMem);
         game_paused = FALSE;
         if (showDebug) DrawPlayerDebug(hdcMem);
         drawGrenades(hdcMem);
-        drawParticles(hdcMem);
         drawUI(hdcMem);
         drawConversationIfNeeded(hdcMem);
     }else{

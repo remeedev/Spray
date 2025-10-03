@@ -24,6 +24,8 @@ int offsetX, offsetY;
 Sprite *pause_menu_anim;
 char *current_level_name;
 
+Sprite *pause_menu_anim;
+
 // ADMIN VAR END
 void loadLevel(char *file_name);
 
